@@ -1,0 +1,7 @@
+2020.08.25 16:15:12 INFO  started: Metals version 0.9.3 in workspace '/home/davide/projects/lab/lab-kafka-streaming' for client vscode.
+2020.08.25 16:15:13 INFO  time: initialize in 0.32s
+2020.08.25 16:15:13 WARN  no build tool detected in workspace '/home/davide/projects/lab/lab-kafka-streaming'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. 
+2020.08.25 16:15:13 INFO  no build target: using presentation compiler with only scala-library
+Aug 25, 2020 4:15:18 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTraceNotification
+2020.08.25 16:15:25 INFO  shutting down Metals
