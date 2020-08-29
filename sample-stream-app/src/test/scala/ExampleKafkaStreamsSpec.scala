@@ -1,5 +1,3 @@
-package net.manub.embeddedkafka.streams
-
 import scala.concurrent.duration._
 import collection.JavaConverters._
 
