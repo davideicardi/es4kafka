@@ -10,6 +10,7 @@ import org.apache.kafka.streams.kstream.Materialized
 import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.scala._
 import org.apache.kafka.streams.scala.kstream._
+import org.apache.kafka.streams.StreamsConfig
 
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
@@ -19,13 +20,17 @@ import Serdes._
 import org.apache.kafka.common.serialization.Serde
 import com.sksamuel.avro4s.BinaryFormat
 import com.sksamuel.avro4s.kafka.GenericSerde
-import org.apache.kafka.common.serialization.Serializer
 
 class ExampleKafkaESAggregateSpec 
   extends AnyWordSpec with Matchers with EmbeddedKafkaStreams {
 
   implicit val config: EmbeddedKafkaConfig =
     EmbeddedKafkaConfig(kafkaPort = 8000, zooKeeperPort = 8001)
+  val extraConf = Map(
+    // The commit interval for flushing records to state stores and downstream must be lower than
+    // test's timeout (5 secs) to ensure we observe the expected processing results.
+    StreamsConfig.COMMIT_INTERVAL_MS_CONFIG -> "500"
+  )
 
   implicit val eventsSerde: Serde[Event] = new GenericSerde[Event](BinaryFormat)
   implicit val customerSerde: Serde[Customer] = new GenericSerde[Customer](BinaryFormat)
@@ -39,14 +44,7 @@ class ExampleKafkaESAggregateSpec
 
   def getAggregates(count: Int)(implicit serde: Serde[Customer]): Iterable[(String, Customer)] = {
     implicit val des = serde.deserializer()
-    consumeNumberKeyedMessagesFromTopics[String, Customer](
-      Set(topicState),
-      count,
-      false,
-      60.seconds
-    )
-    .values
-    .flatten
+    consumeNumberKeyedMessagesFrom[String, Customer](topicState, count)
   }
 
   "Given some events" should {
@@ -60,7 +58,7 @@ class ExampleKafkaESAggregateSpec
         .aggregate(new Customer)((k, v, c) => c.withEvent(v))
       stateTable.toStream.to(topicState)
 
-      runStreams(Seq(topicEvents, topicState), streamBuilder.build()) {
+      runStreams(Seq(topicEvents, topicState), streamBuilder.build(), extraConf) {
 
         publishEvent("1", NameSet("Clark", "Kent"))
         publishEvent("2", NameSet("Peter", "Parker"))

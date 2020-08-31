@@ -10,6 +10,7 @@ import org.apache.kafka.streams.kstream.Materialized
 import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.scala._
 import org.apache.kafka.streams.scala.kstream._
+import org.apache.kafka.streams.StreamsConfig
 
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
@@ -23,6 +24,11 @@ class ExampleKafkaStreamsSpec
 
   implicit val config: EmbeddedKafkaConfig =
     EmbeddedKafkaConfig(kafkaPort = 7000, zooKeeperPort = 7001)
+  val extraConf = Map(
+    // The commit interval for flushing records to state stores and downstream must be lower than
+    // test's timeout (5 secs) to ensure we observe the expected processing results.
+    StreamsConfig.COMMIT_INTERVAL_MS_CONFIG -> "500"
+  )
 
   val (inTopic, outTopic) = ("in", "out")
 
@@ -34,7 +40,7 @@ class ExampleKafkaStreamsSpec
 
       stream.to(outTopic)
 
-      runStreams(Seq(inTopic, outTopic), streamBuilder.build()) {
+      runStreams(Seq(inTopic, outTopic), streamBuilder.build(), extraConf) {
         publishToKafka(inTopic, "hello", "world")
         publishToKafka(inTopic, "foo", "bar")
         publishToKafka(inTopic, "baz", "yaz")
@@ -52,7 +58,7 @@ class ExampleKafkaStreamsSpec
 
       stream.to(outTopic)
 
-      runStreams(Seq(inTopic, outTopic), streamBuilder.build()) {
+      runStreams(Seq(inTopic, outTopic), streamBuilder.build(), extraConf) {
         publishToKafka(inTopic, "hello", "world")
         publishToKafka(inTopic, "foo", "bar")
 
@@ -81,21 +87,14 @@ class ExampleKafkaStreamsSpec
         .mapValues((_, v) => v.toString())
       wordCounts.toStream.to(outTopic)
 
-      runStreams(Seq(inTopic, outTopic), streamBuilder.build()) {
+      runStreams(Seq(inTopic, outTopic), streamBuilder.build(), extraConf) {
 
         publishToKafka(inTopic, "key1", "Hello world")
         publishToKafka(inTopic, "key2", "hello Bar")
 
-        consumeNumberKeyedMessagesFromTopics[String, String](Set(outTopic), 3, false, 60.seconds)
-        .values
-        .flatten should be (
+        consumeNumberKeyedMessagesFrom[String, String](outTopic, 3) should be (
           Seq("world" -> "1", "hello" -> "2", "bar" -> "1")
         )
-
-        // this cannot be used because I need to increase timeout
-        // consumeNumberKeyedMessagesFrom[String, String](outTopic, 3) should be (
-        //   Seq("hello" -> "2", "world" -> "1", "bar" -> "2")
-        // )
       }
     }
 
