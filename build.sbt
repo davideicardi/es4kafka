@@ -10,7 +10,7 @@ lazy val root = (project in file("."))
       "org.apache.kafka" %% "kafka-streams-scala" % kafkaVersion,
       "org.apache.kafka" % "kafka-clients" % kafkaVersion,
       "com.davideicardi" %% "kaa" % "0.3.3",
-      "org.scalatest" %% "scalatest-wordspec"       % scalaTestVersion % Test,
+      "org.scalatest" %% "scalatest-funspec"       % scalaTestVersion % Test,
       "org.scalatest" %% "scalatest-shouldmatchers" % scalaTestVersion % Test,
       "io.github.embeddedkafka" %% "embedded-kafka" % kafkaVersion % Test,
       "io.github.embeddedkafka" %% "embedded-kafka-streams" % kafkaVersion % Test
