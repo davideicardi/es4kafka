@@ -18,7 +18,7 @@ class CustomerSpec extends AnyFunSpec with Matchers {
 
       val expectedSnapshot = Customer(Customer.StateNormal, "code1", "name1")
       val expectedEvents = Seq(Customer.EventCreated("code1", "name1"))
-      results should be(Right(expectedEvents, expectedSnapshot))
+      results should be(Right((expectedEvents, expectedSnapshot)))
     }
 
     it("should not be possible to exec other commands") {
@@ -41,7 +41,7 @@ class CustomerSpec extends AnyFunSpec with Matchers {
 
       val expectedSnapshot = Customer(Customer.StateNormal, "code1", "name2")
       val expectedEvents = Seq(Customer.EventNameChanged("name1", "name2"))
-      results should be(Right(expectedEvents, expectedSnapshot))
+      results should be(Right((expectedEvents, expectedSnapshot)))
     }
 
     it("should not be possible to exec CommandCreate") {
