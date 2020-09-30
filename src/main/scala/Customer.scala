@@ -15,13 +15,13 @@ object Customer {
   case object StateDeleted extends State
 
   sealed trait CommandResult
-  case class CommandResultSuccess(events: Seq[Event]) extends CommandResult
   case class CommandResultError(error: String) extends CommandResult
 
   def draft: Customer = Customer(StateNew, "", "")
 }
 
 case class Customer(state: State, code: String, name: String) {
+  def apply(events: Seq[Event]): Customer = events.foldLeft(this){ (aggregate, event) => aggregate.apply(event) }
   def apply(event: Event): Customer = {
     event match {
       case EventCreated(code, name) =>
@@ -31,20 +31,20 @@ case class Customer(state: State, code: String, name: String) {
     }
   }
 
-  def exec(command: Command): Either[CommandResultError, CommandResultSuccess] = {
+  def exec(command: Command): Either[CommandResultError, Seq[Event]] = {
     command match {
       case CommandCreate(_, _) if state != StateNew => Left {
         CommandResultError("Customer already created")
       }
       case CommandCreate(code, name) => Right {
-        CommandResultSuccess(Seq(EventCreated(code, name)))
+        Seq(EventCreated(code, name))
       }
 
       case CommandChangeName(_) if state != StateNormal => Left {
         CommandResultError("Customer not valid")
       }
-      case CommandChangeName(newName) => Right{
-        CommandResultSuccess(Seq(EventNameChanged(oldName = name, newName = newName)))
+      case CommandChangeName(newName) => Right {
+        Seq(EventNameChanged(oldName = name, newName = newName))
       }
     }
   }
