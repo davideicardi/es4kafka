@@ -6,7 +6,7 @@ import org.apache.kafka.streams.scala.Serdes._
 import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.{StreamsConfig, Topology}
 import com.davideicardi.kaa.SchemaRegistry
-import org.apache.kafka.common.serialization.Serde
+import com.davideicardi.kaa.kafka.GenericSerde
 
 class CustomerHandler(
                      val bootstrapServers: String,
@@ -20,19 +20,29 @@ class CustomerHandler(
   properties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId)
   properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
 
-  implicit val commandValueSerde: Serde[Customer.Command] =
-    new com.davideicardi.kaa.kafka.GenericSerde[Customer.Command](schemaRegistry)
+  implicit val commandSerde: GenericSerde[Customer.Command] = new GenericSerde(schemaRegistry)
+  implicit val snapshotSerde: GenericSerde[Customer] = new GenericSerde(schemaRegistry)
 
   def createTopology(): Topology = {
     val streamBuilder = new StreamsBuilder
     val commands: KStream[String, Customer.Command] =
       streamBuilder.stream(commandsTopic)
 
-    commands
-      .to(snapshotTopic)
+    val snapshotTable: KTable[String, Customer] = commands
+      .groupByKey(Grouped.`with`(s"${commandsTopic}.groupedForSnapshot"))
+      .aggregate(Customer.draft)((_, command, snapshot) => {
+        val result = snapshot.exec(command) map {
+          events => snapshot.apply(events)
+        }
 
-    commands
-      .to(eventsTopic)
+        // TODO Review this!
+        if (result.isLeft) {
+          throw new Exception(result.left.toOption.get.error)
+        }
+        result.toOption.get
+        /////
+      })
+    snapshotTable.toStream.to(snapshotTopic)
 
     streamBuilder.build()
   }
