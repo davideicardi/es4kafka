@@ -17,18 +17,25 @@ class CustomerHandlerSpec extends AnyFunSpec with Matchers {
   it("when sending commands should generate snapshots and events") {
     runTopology { driver =>
       val commandTopic = driver.createInputTopic[String, Customer.Command](Config.Customer.topicCommands)
-      // val eventsTopic = driver.createOutputTopic[String, Customer.Command](target.eventsTopic)
-      val snapshotTopic = driver.createOutputTopic[String, Customer](Config.Customer.topicSnapshot)
+      val eventsTopic = driver.createOutputTopic[String, Customer.Event](Config.Customer.topicEvents)
+      val snapshotTopic = driver.createOutputTopic[String, Customer](Config.Customer.topicSnapshots)
 
-      commandTopic.pipeInput("key1", Customer.CommandCreate("code1", "name1"))
-      commandTopic.pipeInput("key2", Customer.CommandCreate("code2", "name2"))
-      commandTopic.pipeInput("key1", Customer.CommandChangeName("name1.1"))
+      commandTopic.pipeInput("code1", Customer.CommandCreate("code1", "name1"))
+      commandTopic.pipeInput("code2", Customer.CommandCreate("code2", "name2"))
+      commandTopic.pipeInput("code1", Customer.CommandChangeName("name1.1"))
 
-      val results = snapshotTopic.readKeyValuesToMap().asScala
+      val snapshots = snapshotTopic.readKeyValuesToMap().asScala
+      snapshots should be(Map(
+        "code1" -> Customer(Customer.StateNormal, "code1", "name1.1"),
+        "code2" -> Customer(Customer.StateNormal, "code2", "name2"),
+      ))
 
-      results should be(Map(
-        "key1" -> Customer(Customer.StateNormal, "code1", "name1.1"),
-        "key2" -> Customer(Customer.StateNormal, "code2", "name2"),
+      val events = eventsTopic.readKeyValuesToList().asScala
+        .map(x => x.key -> x.value)
+      events should be(Seq(
+        "code1" -> Customer.EventCreated("code1", "name1"),
+        "code2" -> Customer.EventCreated("code2", "name2"),
+        "code1" -> Customer.EventNameChanged("name1", "name1.1"),
       ))
     }
   }

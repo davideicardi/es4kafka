@@ -34,14 +34,14 @@ class CustomerHandler(
     // define the snapshot store
     streamBuilder.addStateStore(
       Stores.keyValueStoreBuilder(
-        Stores.persistentKeyValueStore(Config.Customer.storeSnapshot),
+        Stores.persistentKeyValueStore(Config.Customer.storeSnapshots),
         String,
         snapshotSerde))
 
     // exec commands and update snapshots
     val results = commands.transform(
       () => new CommandTransformer,
-      Config.Customer.storeSnapshot)
+      Config.Customer.storeSnapshots)
 
     // events
     results
@@ -53,7 +53,7 @@ class CustomerHandler(
     results
       .flatMapValues((_, result) => result.toSeq)
       .mapValues((_, commandSuccess) => commandSuccess.snapshot)
-      .to(Config.Customer.topicSnapshot)
+      .to(Config.Customer.topicSnapshots)
 
     // commands results
     // TODO
@@ -68,7 +68,7 @@ class CustomerHandler(
 
     override def init(context: ProcessorContext): Unit = {
       store = context
-        .getStateStore(Config.Customer.storeSnapshot)
+        .getStateStore(Config.Customer.storeSnapshots)
         .asInstanceOf[KeyValueStore[String, Customer]]
     }
 
