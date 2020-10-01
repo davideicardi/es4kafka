@@ -14,8 +14,9 @@ object Customer {
   case object StateNormal extends State
   case object StateDeleted extends State
 
-  sealed trait CommandResult
-  case class CommandResultError(error: String) extends CommandResult
+  case class CommandError(error: String)
+  case class CommandSuccess(events: Seq[Event], snapshot: Customer)
+  type CommandResult = Either[CommandError, CommandSuccess]
 
   def draft: Customer = Customer(StateNew, "", "")
 }
@@ -31,20 +32,24 @@ case class Customer(state: State, code: String, name: String) {
     }
   }
 
-  def exec(command: Command): Either[CommandResultError, Seq[Event]] = {
+  def exec(command: Command): CommandResult = {
     command match {
       case CommandCreate(_, _) if state != StateNew => Left {
-        CommandResultError("Customer already created")
+        CommandError("Customer already created")
       }
       case CommandCreate(code, name) => Right {
-        Seq(EventCreated(code, name))
+        val events = Seq(EventCreated(code, name))
+        val snapshot = this.apply(events)
+        CommandSuccess(events, snapshot)
       }
 
       case CommandChangeName(_) if state != StateNormal => Left {
-        CommandResultError("Customer not valid")
+        CommandError("Customer not valid")
       }
       case CommandChangeName(newName) => Right {
-        Seq(EventNameChanged(oldName = name, newName = newName))
+        val events = Seq(EventNameChanged(oldName = name, newName = newName))
+        val snapshot = this.apply(events)
+        CommandSuccess(events, snapshot)
       }
     }
   }

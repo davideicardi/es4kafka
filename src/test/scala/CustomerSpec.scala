@@ -12,13 +12,11 @@ class CustomerSpec extends AnyFunSpec with Matchers {
     it("should be possible to exec CommandCreate") {
       val command = Customer.CommandCreate("code1", "name1")
 
-      val results = target.exec(command).map {
-        events => (events, target.apply(events))
-      }
+      val results = target.exec(command)
 
       val expectedSnapshot = Customer(Customer.StateNormal, "code1", "name1")
       val expectedEvents = Seq(Customer.EventCreated("code1", "name1"))
-      results should be(Right((expectedEvents, expectedSnapshot)))
+      results should be(Right(Customer.CommandSuccess(expectedEvents, expectedSnapshot)))
     }
 
     it("should not be possible to exec other commands") {
@@ -26,7 +24,7 @@ class CustomerSpec extends AnyFunSpec with Matchers {
 
       val results = target.exec(command)
 
-      results should be(Left(Customer.CommandResultError("Customer not valid")))
+      results should be(Left(Customer.CommandError("Customer not valid")))
     }
   }
   describe("when created") {
@@ -35,13 +33,11 @@ class CustomerSpec extends AnyFunSpec with Matchers {
     it("should be possible to change the name") {
       val command = Customer.CommandChangeName("name2")
 
-      val results = target.exec(command).map {
-        events => (events, target.apply(events))
-      }
+      val results = target.exec(command)
 
       val expectedSnapshot = Customer(Customer.StateNormal, "code1", "name2")
       val expectedEvents = Seq(Customer.EventNameChanged("name1", "name2"))
-      results should be(Right((expectedEvents, expectedSnapshot)))
+      results should be(Right(Customer.CommandSuccess(expectedEvents, expectedSnapshot)))
     }
 
     it("should not be possible to exec CommandCreate") {
@@ -49,7 +45,7 @@ class CustomerSpec extends AnyFunSpec with Matchers {
 
       val results = target.exec(command)
 
-      results should be(Left(Customer.CommandResultError("Customer already created")))
+      results should be(Left(Customer.CommandError("Customer already created")))
     }
   }
 }
