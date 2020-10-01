@@ -33,23 +33,45 @@ case class Customer(state: State, code: String, name: String) {
   }
 
   def exec(command: Command): CommandResult = {
-    command match {
-      case CommandCreate(_, _) if state != StateNew => Left {
-        CommandError("Customer already created")
-      }
-      case CommandCreate(code, name) => Right {
-        val events = Seq(EventCreated(code, name))
-        val snapshot = this.apply(events)
-        CommandSuccess(events, snapshot)
-      }
+    val result = state match {
+      case StateNew => execNew(command)
+      case StateNormal => execNormal(command)
+      case StateDeleted => execDeleted(command)
+    }
 
-      case CommandChangeName(_) if state != StateNormal => Left {
-        CommandError("Customer not valid")
-      }
-      case CommandChangeName(newName) => Right {
-        val events = Seq(EventNameChanged(oldName = name, newName = newName))
+    result.map(events => {
         val snapshot = this.apply(events)
         CommandSuccess(events, snapshot)
+      }
+    )
+  }
+
+  private def execNormal(command: Command): Either[CommandError, Seq[Event]] = {
+    command match {
+      case CommandChangeName(newName) => Right {
+        Seq(EventNameChanged(oldName = name, newName = newName))
+      }
+      case _ => Left {
+        CommandError("Invalid operation, command supported")
+      }
+    }
+  }
+
+  private def execDeleted(command: Command): Either[CommandError, Seq[Event]] = {
+    command match {
+      case _ => Left {
+        CommandError("Invalid operation, command supported")
+      }
+    }
+  }
+
+  private def execNew(command: Command): Either[CommandError, Seq[Event]] = {
+    command match {
+      case CommandCreate(code, name) => Right {
+        Seq(EventCreated(code, name))
+      }
+      case _ => Left {
+        CommandError("Invalid operation, entity not yet created")
       }
     }
   }

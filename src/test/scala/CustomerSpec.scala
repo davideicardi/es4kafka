@@ -24,7 +24,7 @@ class CustomerSpec extends AnyFunSpec with Matchers {
 
       val results = target.exec(command)
 
-      results should be(Left(Customer.CommandError("Customer not valid")))
+      results should be(Left(Customer.CommandError("Invalid operation, entity not yet created")))
     }
   }
   describe("when created") {
@@ -45,7 +45,7 @@ class CustomerSpec extends AnyFunSpec with Matchers {
 
       val results = target.exec(command)
 
-      results should be(Left(Customer.CommandError("Customer already created")))
+      results should be(Left(Customer.CommandError("Invalid operation, command supported")))
     }
   }
 }
