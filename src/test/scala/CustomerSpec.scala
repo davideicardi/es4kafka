@@ -7,7 +7,7 @@ class CustomerSpec extends AnyFunSpec with Matchers {
   describe("when draft") {
     val target = Customer.draft
 
-    it("should be in new state") {
+    it("should be in draft state") {
       target.state should be(Customer.StateDraft)
     }
 
