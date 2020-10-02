@@ -44,11 +44,51 @@ class CommandHandlerSpec extends AnyFunSpec with Matchers {
         ))
       }
 
-//      it("generate snapshots store") {
-//        val store = driver.getK(Config.Customer.storeSnapshots)
-//        store.get(id1) should be(Customer(id1, Customer.StateNormal, "code1", "name1.1"))
-//        store.get(id2) should be(Customer(id2, Customer.StateNormal, "code2", "name2"))
-//      }
+      it("should not generate errors") {
+        val commandStatusTopic = driver.createOutputTopic[UUID, CommandStatus](Config.Customer.topicCommandsStatus)
+        val commandStatuses = commandStatusTopic.readKeyValuesToMap().asScala
+        commandStatuses should be(Map(
+          id1 -> CommandStatus(success = true),
+          id2 -> CommandStatus(success = true),
+          id1 -> CommandStatus(success = true),
+        ))
+      }
+    }
+  }
+
+  describe("when adding two customer with the same") {
+    runTopology { driver =>
+      val commandTopic = driver.createInputTopic[UUID, Command](Config.Customer.topicCommands)
+      val commandStatusTopic = driver.createOutputTopic[UUID, CommandStatus](Config.Customer.topicCommandsStatus)
+
+      val (id1, id2) = (UUID.randomUUID(), UUID.randomUUID())
+      commandTopic.pipeInput(id1, CommandCreate(id1, "uniqueCode", "name1"))
+      commandTopic.pipeInput(id2, CommandCreate(id2, "uniqueCode", "name2"))
+
+      it("should generate events only for the first one") {
+        val eventsTopic = driver.createOutputTopic[UUID, Event](Config.Customer.topicEvents)
+        val events = eventsTopic.readKeyValuesToList().asScala
+          .map(x => x.key -> x.value)
+        events should be(Seq(
+          id1 -> EventCreated(id1, "uniqueCode", "name1"),
+        ))
+      }
+
+      it("generate snapshots only for the first one") {
+        val snapshotTopic = driver.createOutputTopic[UUID, Customer](Config.Customer.topicSnapshots)
+        val snapshots = snapshotTopic.readKeyValuesToMap().asScala
+        snapshots should be(Map(
+          id1 -> Customer(id1, Customer.StateNormal, "uniqueCode", "name1"),
+        ))
+      }
+
+      it("should generate a duplicate error") {
+        val commandStatuses = commandStatusTopic.readKeyValuesToMap().asScala
+        commandStatuses should be(Map(
+          id2 -> CommandStatus(success = false, Some("Duplicated key")),
+          id1 -> CommandStatus(success = true),
+        ))
+      }
     }
   }
 
