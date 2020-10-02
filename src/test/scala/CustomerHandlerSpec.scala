@@ -18,17 +18,17 @@ class CustomerHandlerSpec extends AnyFunSpec with Matchers {
     runTopology { driver =>
       val commandTopic = driver.createInputTopic[String, Command](Config.Customer.topicCommands)
       val eventsTopic = driver.createOutputTopic[String, Event](Config.Customer.topicEvents)
-      val snapshotTopic = driver.createOutputTopic[String, Customer](Config.Customer.topicSnapshots)
+      // val snapshotTopic = driver.createOutputTopic[String, Customer](Config.Customer.topicSnapshots)
 
       commandTopic.pipeInput("code1", CommandCreate("code1", "name1"))
       commandTopic.pipeInput("code2", CommandCreate("code2", "name2"))
       commandTopic.pipeInput("code1", CommandChangeName("name1.1"))
 
-      val snapshots = snapshotTopic.readKeyValuesToMap().asScala
-      snapshots should be(Map(
-        "code1" -> Customer(Customer.StateNormal, "code1", "name1.1"),
-        "code2" -> Customer(Customer.StateNormal, "code2", "name2"),
-      ))
+//      val snapshots = snapshotTopic.readKeyValuesToMap().asScala
+//      snapshots should be(Map(
+//        "code1" -> Customer(Customer.StateNormal, "code1", "name1.1"),
+//        "code2" -> Customer(Customer.StateNormal, "code2", "name2"),
+//      ))
 
       val events = eventsTopic.readKeyValuesToList().asScala
         .map(x => x.key -> x.value)

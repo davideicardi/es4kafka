@@ -49,11 +49,11 @@ class CustomerHandler(
       .flatMapValues((_, commandSuccess) => commandSuccess.events)
       .to(Config.Customer.topicEvents)
 
-    // snapshots
-    results
-      .flatMapValues((_, result) => result.toSeq)
-      .mapValues((_, commandSuccess) => commandSuccess.snapshot)
-      .to(Config.Customer.topicSnapshots)
+//    // snapshots
+//    results
+//      .flatMapValues((_, result) => result.toSeq)
+//      .mapValues((_, commandSuccess) => commandSuccess.snapshot)
+//      .to(Config.Customer.topicSnapshots)
 
     // commands results
     // TODO

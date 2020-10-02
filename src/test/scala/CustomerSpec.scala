@@ -6,7 +6,7 @@ class CustomerSpec extends AnyFunSpec with Matchers {
     val target = Customer.draft
 
     it("should be in new state") {
-      target.state should be(Customer.StateNew)
+      target.state should be(Customer.StateDraft)
     }
 
     it("should be possible to exec CommandCreate") {
@@ -14,9 +14,15 @@ class CustomerSpec extends AnyFunSpec with Matchers {
 
       val results = target.exec(command)
 
-      val expectedSnapshot = Customer(Customer.StateNormal, "code1", "name1")
       val expectedEvents = Seq(EventCreated("code1", "name1"))
-      results should be(Right(CommandSuccess(expectedEvents, expectedSnapshot)))
+      results match {
+        case Left(_) => fail("Command failed")
+        case Right(commandSuccess) =>
+          commandSuccess.events should be(expectedEvents)
+          commandSuccess.snapshot.state should be(Customer.StateNormal)
+          commandSuccess.snapshot.code should be("code1")
+          commandSuccess.snapshot.name should be("name1")
+      }
     }
 
     it("should not be possible to exec other commands") {
@@ -35,9 +41,15 @@ class CustomerSpec extends AnyFunSpec with Matchers {
 
       val results = target.exec(command)
 
-      val expectedSnapshot = Customer(Customer.StateNormal, "code1", "name2")
       val expectedEvents = Seq(EventNameChanged("name1", "name2"))
-      results should be(Right(CommandSuccess(expectedEvents, expectedSnapshot)))
+      results match {
+        case Left(_) => fail("Command failed")
+        case Right(commandSuccess) =>
+          commandSuccess.events should be(expectedEvents)
+          commandSuccess.snapshot.state should be(Customer.StateNormal)
+          commandSuccess.snapshot.code should be("code1")
+          commandSuccess.snapshot.name should be("name2")
+      }
     }
 
     it("should not be possible to exec CommandCreate") {

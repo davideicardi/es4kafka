@@ -5,7 +5,7 @@ object Config {
     val topicCommands: String = "customers.commands"
     val topicCommandsResults: String = "customers.commands.results"
     val topicEvents: String = "customers.events"
-    val topicSnapshots: String = "customers.snapshots"
+    val topicProjectionByCode: String = "customers.projections.byCode"
 
     val storeSnapshots: String = "customers.snapshots.store"
   }

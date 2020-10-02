@@ -1,15 +1,18 @@
+import java.util.UUID
+
 import Customer._
 
 object Customer {
   sealed trait State
-  case object StateNew extends State
+  case object StateDraft extends State
   case object StateNormal extends State
   case object StateDeleted extends State
 
-  def draft: Customer = Customer(StateNew, "", "")
+  val EMPTY_ID = new UUID(0L, 0L)
+  def draft: Customer = Customer(EMPTY_ID, StateDraft, "", "")
 }
 
-case class Customer(state: State, code: String, name: String) {
+case class Customer(id: UUID, state: State, code: String, name: String) {
   def apply(events: Seq[Event]): Customer = events.foldLeft(this){ (aggregate, event) => aggregate.apply(event) }
   def apply(event: Event): Customer = {
     event match {
@@ -22,7 +25,7 @@ case class Customer(state: State, code: String, name: String) {
 
   def exec(command: Command): Either[CommandError, CommandSuccess] = {
     val result = state match {
-      case StateNew => execNew(command)
+      case StateDraft => execDraft(command)
       case StateNormal => execNormal(command)
       case StateDeleted => execDeleted(command)
     }
@@ -32,6 +35,17 @@ case class Customer(state: State, code: String, name: String) {
         CommandSuccess(events, snapshot)
       }
     )
+  }
+
+  private def execDraft(command: Command): Either[CommandError, Seq[Event]] = {
+    command match {
+      case CommandCreate(code, name) => Right {
+        Seq(EventCreated(code, name))
+      }
+      case _ => Left {
+        CommandError("Invalid operation, entity not yet created")
+      }
+    }
   }
 
   private def execNormal(command: Command): Either[CommandError, Seq[Event]] = {
@@ -49,17 +63,6 @@ case class Customer(state: State, code: String, name: String) {
     command match {
       case _ => Left {
         CommandError("Invalid operation, command supported")
-      }
-    }
-  }
-
-  private def execNew(command: Command): Either[CommandError, Seq[Event]] = {
-    command match {
-      case CommandCreate(code, name) => Right {
-        Seq(EventCreated(code, name))
-      }
-      case _ => Left {
-        CommandError("Invalid operation, entity not yet created")
       }
     }
   }
