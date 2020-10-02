@@ -1,17 +1,17 @@
-import java.util.Properties
+import java.util.{Properties, UUID}
 
 import org.apache.kafka.streams.scala._
 import org.apache.kafka.streams.scala.kstream._
-import org.apache.kafka.streams.scala.Serdes._
 import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.{KeyValue, StreamsConfig, Topology}
 import com.davideicardi.kaa.SchemaRegistry
 import com.davideicardi.kaa.kafka.GenericSerde
+import org.apache.kafka.common.serialization.Serdes.UUIDSerde
 import org.apache.kafka.streams.kstream.Transformer
 import org.apache.kafka.streams.processor.ProcessorContext
 import org.apache.kafka.streams.state.{KeyValueStore, Stores}
 
-class CustomerHandler(
+class CommandHandler(
                      val bootstrapServers: String,
                      val schemaRegistry: SchemaRegistry,
                      ) {
@@ -23,24 +23,25 @@ class CustomerHandler(
   implicit val commandSerde: GenericSerde[Command] = new GenericSerde(schemaRegistry)
   implicit val eventSerde: GenericSerde[Event] = new GenericSerde(schemaRegistry)
   implicit val snapshotSerde: GenericSerde[Customer] = new GenericSerde(schemaRegistry)
+  implicit val uuidSerde: UUIDSerde = new UUIDSerde()
 
   def createTopology(): Topology = {
     val streamBuilder = new StreamsBuilder
 
     // input commands
-    val commands: KStream[String, Command] =
+    val commands: KStream[UUID, Command] =
       streamBuilder.stream(Config.Customer.topicCommands)
 
     // define the snapshot store
     streamBuilder.addStateStore(
       Stores.keyValueStoreBuilder(
         Stores.persistentKeyValueStore(Config.Customer.storeSnapshots),
-        String,
+        uuidSerde,
         snapshotSerde))
 
     // exec commands and update snapshots
     val results = commands.transform(
-      () => new CommandTransformer,
+      () => new CustomerTransformer,
       Config.Customer.storeSnapshots)
 
     // events
@@ -61,15 +62,15 @@ class CustomerHandler(
     streamBuilder.build()
   }
 
-  class CommandTransformer
-    extends Transformer[String, Command, KeyValue[String, Either[CommandError, CommandSuccess]]] {
+  class CustomerTransformer
+    extends Transformer[UUID, Command, KeyValue[UUID, Either[CommandError, CommandSuccess]]] {
 
-    private var store: KeyValueStore[String, Customer] = _
+    private var store: KeyValueStore[UUID, Customer] = _
 
     override def init(context: ProcessorContext): Unit = {
       store = context
         .getStateStore(Config.Customer.storeSnapshots)
-        .asInstanceOf[KeyValueStore[String, Customer]]
+        .asInstanceOf[KeyValueStore[UUID, Customer]]
     }
 
     /**
@@ -79,7 +80,7 @@ class CustomerHandler(
      * handle commands as read-process-write without a race condition. We
      * are still able to scale out by adding more partitions.
      */
-    override def transform(key: String, value: Command): KeyValue[String, Either[CommandError, CommandSuccess]] = {
+    override def transform(key: UUID, value: Command): KeyValue[UUID, Either[CommandError, CommandSuccess]] = {
       val snapshot = loadSnapshot(key)
       val result = snapshot.exec(value)
       result map {
@@ -91,10 +92,10 @@ class CustomerHandler(
 
     override def close(): Unit = ()
 
-    private def loadSnapshot(key: String): Customer =
+    private def loadSnapshot(key: UUID): Customer =
       Option(store.get(key)).getOrElse(Customer.draft)
 
-    private def updateSnapshot(key: String, snapshot: Customer): Unit = {
+    private def updateSnapshot(key: UUID, snapshot: Customer): Unit = {
       store.put(key, snapshot)
     }
   }

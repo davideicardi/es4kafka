@@ -1,14 +1,15 @@
+import java.util.UUID
+
 import com.davideicardi.kaa.test.TestSchemaRegistry
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import org.apache.kafka.streams.scala.Serdes._
 
 import scala.jdk.CollectionConverters._
 
-class CustomerHandlerSpec extends AnyFunSpec with Matchers {
+class CommandHandlerSpec extends AnyFunSpec with Matchers {
   private val schemaRegistry = new TestSchemaRegistry
 
-  val target = new CustomerHandler(
+  val target = new CommandHandler(
     "dummy:9999",
     schemaRegistry,
   )
@@ -16,13 +17,14 @@ class CustomerHandlerSpec extends AnyFunSpec with Matchers {
 
   it("when sending commands should generate snapshots and events") {
     runTopology { driver =>
-      val commandTopic = driver.createInputTopic[String, Command](Config.Customer.topicCommands)
-      val eventsTopic = driver.createOutputTopic[String, Event](Config.Customer.topicEvents)
+      val commandTopic = driver.createInputTopic[UUID, Command](Config.Customer.topicCommands)
+      val eventsTopic = driver.createOutputTopic[UUID, Event](Config.Customer.topicEvents)
       // val snapshotTopic = driver.createOutputTopic[String, Customer](Config.Customer.topicSnapshots)
 
-      commandTopic.pipeInput("code1", CommandCreate("code1", "name1"))
-      commandTopic.pipeInput("code2", CommandCreate("code2", "name2"))
-      commandTopic.pipeInput("code1", CommandChangeName("name1.1"))
+      val (id1, id2) = (UUID.randomUUID(), UUID.randomUUID())
+      commandTopic.pipeInput(id1, CommandCreate(id1, "code1", "name1"))
+      commandTopic.pipeInput(id2, CommandCreate(id2, "code2", "name2"))
+      commandTopic.pipeInput(id1, CommandChangeName("name1.1"))
 
 //      val snapshots = snapshotTopic.readKeyValuesToMap().asScala
 //      snapshots should be(Map(
@@ -33,9 +35,9 @@ class CustomerHandlerSpec extends AnyFunSpec with Matchers {
       val events = eventsTopic.readKeyValuesToList().asScala
         .map(x => x.key -> x.value)
       events should be(Seq(
-        "code1" -> EventCreated("code1", "name1"),
-        "code2" -> EventCreated("code2", "name2"),
-        "code1" -> EventNameChanged("name1", "name1.1"),
+        id1 -> EventCreated(id1, "code1", "name1"),
+        id2 -> EventCreated(id2, "code2", "name2"),
+        id1 -> EventNameChanged("name1.1"),
       ))
     }
   }

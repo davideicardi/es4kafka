@@ -16,9 +16,9 @@ case class Customer(id: UUID, state: State, code: String, name: String) {
   def apply(events: Seq[Event]): Customer = events.foldLeft(this){ (aggregate, event) => aggregate.apply(event) }
   def apply(event: Event): Customer = {
     event match {
-      case EventCreated(code, name) =>
-        this.copy(state = StateNormal, code = code, name = name)
-      case EventNameChanged(_, newName) =>
+      case EventCreated(id, code, name) =>
+        this.copy(id = id, state = StateNormal, code = code, name = name)
+      case EventNameChanged(newName) =>
         this.copy(name = newName)
     }
   }
@@ -39,8 +39,8 @@ case class Customer(id: UUID, state: State, code: String, name: String) {
 
   private def execDraft(command: Command): Either[CommandError, Seq[Event]] = {
     command match {
-      case CommandCreate(code, name) => Right {
-        Seq(EventCreated(code, name))
+      case CommandCreate(id, code, name) => Right {
+        Seq(EventCreated(id, code, name))
       }
       case _ => Left {
         CommandError("Invalid operation, entity not yet created")
@@ -51,7 +51,7 @@ case class Customer(id: UUID, state: State, code: String, name: String) {
   private def execNormal(command: Command): Either[CommandError, Seq[Event]] = {
     command match {
       case CommandChangeName(newName) => Right {
-        Seq(EventNameChanged(oldName = name, newName = newName))
+        Seq(EventNameChanged(name = newName))
       }
       case _ => Left {
         CommandError("Invalid operation, command supported")

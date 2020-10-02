@@ -1,3 +1,5 @@
+import java.util.UUID
+
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funspec.AnyFunSpec
 
@@ -10,18 +12,17 @@ class CustomerSpec extends AnyFunSpec with Matchers {
     }
 
     it("should be possible to exec CommandCreate") {
-      val command = CommandCreate("code1", "name1")
+      val command = CommandCreate(UUID.randomUUID(), "code1", "name1")
 
       val results = target.exec(command)
 
-      val expectedEvents = Seq(EventCreated("code1", "name1"))
+      val expectedEvents = Seq(EventCreated(command.id, command.code, command.name))
+      val expectedAggregate = Customer(command.id, Customer.StateNormal, command.code, command.name)
       results match {
         case Left(_) => fail("Command failed")
         case Right(commandSuccess) =>
           commandSuccess.events should be(expectedEvents)
-          commandSuccess.snapshot.state should be(Customer.StateNormal)
-          commandSuccess.snapshot.code should be("code1")
-          commandSuccess.snapshot.name should be("name1")
+          commandSuccess.snapshot should be(expectedAggregate)
       }
     }
 
@@ -34,26 +35,25 @@ class CustomerSpec extends AnyFunSpec with Matchers {
     }
   }
   describe("when created") {
-    val target = Customer.draft.apply(EventCreated("code1", "name1"))
+    val target = Customer.draft.apply(EventCreated(UUID.randomUUID(), "code1", "name1"))
 
     it("should be possible to change the name") {
       val command = CommandChangeName("name2")
 
       val results = target.exec(command)
 
-      val expectedEvents = Seq(EventNameChanged("name1", "name2"))
+      val expectedEvents = Seq(EventNameChanged("name2"))
+      val expectedAggregate = Customer(target.id, Customer.StateNormal, target.code, command.name)
       results match {
         case Left(_) => fail("Command failed")
         case Right(commandSuccess) =>
           commandSuccess.events should be(expectedEvents)
-          commandSuccess.snapshot.state should be(Customer.StateNormal)
-          commandSuccess.snapshot.code should be("code1")
-          commandSuccess.snapshot.name should be("name2")
+          commandSuccess.snapshot should be(expectedAggregate)
       }
     }
 
     it("should not be possible to exec CommandCreate") {
-      val command = CommandCreate("code2", "name2")
+      val command = CommandCreate(UUID.randomUUID(), "code2", "name2")
 
       val results = target.exec(command)
 
