@@ -23,7 +23,7 @@ case class Customer(id: UUID, state: State, code: String, name: String) {
     }
   }
 
-  def exec(command: Command): Either[CommandError, CommandSuccess] = {
+  def exec(command: Command): Either[ResultError, ResultSuccess] = {
     val result = state match {
       case StateDraft => execDraft(command)
       case StateNormal => execNormal(command)
@@ -32,37 +32,37 @@ case class Customer(id: UUID, state: State, code: String, name: String) {
 
     result.map(events => {
         val snapshot = this.apply(events)
-        CommandSuccess(events, snapshot)
+        ResultSuccess(events, snapshot)
       }
     )
   }
 
-  private def execDraft(command: Command): Either[CommandError, Seq[Event]] = {
+  private def execDraft(command: Command): Either[ResultError, Seq[Event]] = {
     command match {
       case CommandCreate(id, code, name) => Right {
         Seq(EventCreated(id, code, name))
       }
       case _ => Left {
-        CommandError("Invalid operation, entity not yet created")
+        ResultError("Invalid operation, entity not yet created")
       }
     }
   }
 
-  private def execNormal(command: Command): Either[CommandError, Seq[Event]] = {
+  private def execNormal(command: Command): Either[ResultError, Seq[Event]] = {
     command match {
       case CommandChangeName(newName) => Right {
         Seq(EventNameChanged(name = newName))
       }
       case _ => Left {
-        CommandError("Invalid operation, command supported")
+        ResultError("Invalid operation, command not supported")
       }
     }
   }
 
-  private def execDeleted(command: Command): Either[CommandError, Seq[Event]] = {
+  private def execDeleted(command: Command): Either[ResultError, Seq[Event]] = {
     command match {
       case _ => Left {
-        CommandError("Invalid operation, command supported")
+        ResultError("Invalid operation, command not supported")
       }
     }
   }

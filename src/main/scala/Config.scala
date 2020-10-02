@@ -1,12 +1,14 @@
 object Config {
-  val applicationId: String = "CustomerHandler"
+  val applicationId: String = "simple-es-kafka"
 
   object Customer {
+    // name convention: {service}.{kind}[.{name}]
     val topicCommands: String = "customers.commands"
-    val topicCommandsResults: String = "customers.commands.results"
+    val topicCommandsResults: String = "customers.commandsResults"
     val topicEvents: String = "customers.events"
-    val topicProjectionByCode: String = "customers.projections.byCode"
+    val topicSnapshots: String = "customers.snapshots"
 
-    val storeSnapshots: String = "customers.snapshots.store"
+    // store convention: {service}.{kind}.{name}
+    val storeSnapshots: String = "customers.store.snapshots"
   }
 }

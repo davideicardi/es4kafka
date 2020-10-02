@@ -28,33 +28,33 @@ class CommandHandler(
   def createTopology(): Topology = {
     val streamBuilder = new StreamsBuilder
 
-    // input commands
-    val commands: KStream[UUID, Command] =
-      streamBuilder.stream(Config.Customer.topicCommands)
-
-    // define the snapshot store
+    // define stores
     streamBuilder.addStateStore(
       Stores.keyValueStoreBuilder(
         Stores.persistentKeyValueStore(Config.Customer.storeSnapshots),
         uuidSerde,
         snapshotSerde))
 
-    // exec commands and update snapshots
-    val results = commands.transform(
-      () => new CustomerTransformer,
+    // input commands
+    val commandsStream: KStream[UUID, Command] =
+      streamBuilder.stream(Config.Customer.topicCommands)
+
+    // exec customer commands and update snapshots
+    val commandsResults = commandsStream.transform(
+      () => new CommandExecutor,
       Config.Customer.storeSnapshots)
 
     // events
-    results
+    commandsResults
       .flatMapValues((_, result) => result.toSeq)
       .flatMapValues((_, commandSuccess) => commandSuccess.events)
       .to(Config.Customer.topicEvents)
 
-//    // snapshots
-//    results
-//      .flatMapValues((_, result) => result.toSeq)
-//      .mapValues((_, commandSuccess) => commandSuccess.snapshot)
-//      .to(Config.Customer.topicSnapshots)
+    // snapshots
+    commandsResults
+      .flatMapValues((_, result) => result.toSeq)
+      .mapValues((_, commandSuccess) => commandSuccess.snapshot)
+      .to(Config.Customer.topicSnapshots)
 
     // commands results
     // TODO
@@ -62,8 +62,8 @@ class CommandHandler(
     streamBuilder.build()
   }
 
-  class CustomerTransformer
-    extends Transformer[UUID, Command, KeyValue[UUID, Either[CommandError, CommandSuccess]]] {
+  class CommandExecutor
+    extends Transformer[UUID, Command, KeyValue[UUID, Either[ResultError, ResultSuccess]]] {
 
     private var store: KeyValueStore[UUID, Customer] = _
 
@@ -80,11 +80,11 @@ class CommandHandler(
      * handle commands as read-process-write without a race condition. We
      * are still able to scale out by adding more partitions.
      */
-    override def transform(key: UUID, value: Command): KeyValue[UUID, Either[CommandError, CommandSuccess]] = {
+    override def transform(key: UUID, value: Command): KeyValue[UUID, Either[ResultError, ResultSuccess]] = {
       val snapshot = loadSnapshot(key)
       val result = snapshot.exec(value)
       result map {
-        case CommandSuccess(_, newSnapshot) =>
+        case ResultSuccess(_, newSnapshot) =>
           updateSnapshot(key, newSnapshot)
       }
       KeyValue.pair(key, result)

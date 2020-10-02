@@ -15,34 +15,44 @@ class CommandHandlerSpec extends AnyFunSpec with Matchers {
   )
   import target._
 
-  it("when sending commands should generate snapshots and events") {
+  describe("when sending commands") {
     runTopology { driver =>
       val commandTopic = driver.createInputTopic[UUID, Command](Config.Customer.topicCommands)
-      val eventsTopic = driver.createOutputTopic[UUID, Event](Config.Customer.topicEvents)
-      // val snapshotTopic = driver.createOutputTopic[String, Customer](Config.Customer.topicSnapshots)
 
       val (id1, id2) = (UUID.randomUUID(), UUID.randomUUID())
       commandTopic.pipeInput(id1, CommandCreate(id1, "code1", "name1"))
       commandTopic.pipeInput(id2, CommandCreate(id2, "code2", "name2"))
       commandTopic.pipeInput(id1, CommandChangeName("name1.1"))
 
-//      val snapshots = snapshotTopic.readKeyValuesToMap().asScala
-//      snapshots should be(Map(
-//        "code1" -> Customer(Customer.StateNormal, "code1", "name1.1"),
-//        "code2" -> Customer(Customer.StateNormal, "code2", "name2"),
-//      ))
+      it("should generate events") {
+        val eventsTopic = driver.createOutputTopic[UUID, Event](Config.Customer.topicEvents)
+        val events = eventsTopic.readKeyValuesToList().asScala
+          .map(x => x.key -> x.value)
+        events should be(Seq(
+          id1 -> EventCreated(id1, "code1", "name1"),
+          id2 -> EventCreated(id2, "code2", "name2"),
+          id1 -> EventNameChanged("name1.1"),
+        ))
+      }
 
-      val events = eventsTopic.readKeyValuesToList().asScala
-        .map(x => x.key -> x.value)
-      events should be(Seq(
-        id1 -> EventCreated(id1, "code1", "name1"),
-        id2 -> EventCreated(id2, "code2", "name2"),
-        id1 -> EventNameChanged("name1.1"),
-      ))
+      it("generate snapshots") {
+        val snapshotTopic = driver.createOutputTopic[UUID, Customer](Config.Customer.topicSnapshots)
+        val snapshots = snapshotTopic.readKeyValuesToMap().asScala
+        snapshots should be(Map(
+          id1 -> Customer(id1, Customer.StateNormal, "code1", "name1.1"),
+          id2 -> Customer(id2, Customer.StateNormal, "code2", "name2"),
+        ))
+      }
+
+//      it("generate snapshots store") {
+//        val store = driver.getK(Config.Customer.storeSnapshots)
+//        store.get(id1) should be(Customer(id1, Customer.StateNormal, "code1", "name1.1"))
+//        store.get(id2) should be(Customer(id2, Customer.StateNormal, "code2", "name2"))
+//      }
     }
   }
 
-  def runTopology(testFun: ScalaTopologyTestDriver => Any): Any = {
+  def runTopology[T](testFun: ScalaTopologyTestDriver => T): T = {
     val topology = target.createTopology()
     val driver = new ScalaTopologyTestDriver(topology, target.properties)
 
