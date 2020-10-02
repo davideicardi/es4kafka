@@ -16,13 +16,13 @@ class CustomerHandlerSpec extends AnyFunSpec with Matchers {
 
   it("when sending commands should generate snapshots and events") {
     runTopology { driver =>
-      val commandTopic = driver.createInputTopic[String, Customer.Command](Config.Customer.topicCommands)
-      val eventsTopic = driver.createOutputTopic[String, Customer.Event](Config.Customer.topicEvents)
+      val commandTopic = driver.createInputTopic[String, Command](Config.Customer.topicCommands)
+      val eventsTopic = driver.createOutputTopic[String, Event](Config.Customer.topicEvents)
       val snapshotTopic = driver.createOutputTopic[String, Customer](Config.Customer.topicSnapshots)
 
-      commandTopic.pipeInput("code1", Customer.CommandCreate("code1", "name1"))
-      commandTopic.pipeInput("code2", Customer.CommandCreate("code2", "name2"))
-      commandTopic.pipeInput("code1", Customer.CommandChangeName("name1.1"))
+      commandTopic.pipeInput("code1", CommandCreate("code1", "name1"))
+      commandTopic.pipeInput("code2", CommandCreate("code2", "name2"))
+      commandTopic.pipeInput("code1", CommandChangeName("name1.1"))
 
       val snapshots = snapshotTopic.readKeyValuesToMap().asScala
       snapshots should be(Map(
@@ -33,9 +33,9 @@ class CustomerHandlerSpec extends AnyFunSpec with Matchers {
       val events = eventsTopic.readKeyValuesToList().asScala
         .map(x => x.key -> x.value)
       events should be(Seq(
-        "code1" -> Customer.EventCreated("code1", "name1"),
-        "code2" -> Customer.EventCreated("code2", "name2"),
-        "code1" -> Customer.EventNameChanged("name1", "name1.1"),
+        "code1" -> EventCreated("code1", "name1"),
+        "code2" -> EventCreated("code2", "name2"),
+        "code1" -> EventNameChanged("name1", "name1.1"),
       ))
     }
   }

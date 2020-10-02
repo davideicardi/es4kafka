@@ -20,15 +20,15 @@ class CustomerHandler(
   properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
   properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE)
 
-  implicit val commandSerde: GenericSerde[Customer.Command] = new GenericSerde(schemaRegistry)
-  implicit val eventSerde: GenericSerde[Customer.Event] = new GenericSerde(schemaRegistry)
+  implicit val commandSerde: GenericSerde[Command] = new GenericSerde(schemaRegistry)
+  implicit val eventSerde: GenericSerde[Event] = new GenericSerde(schemaRegistry)
   implicit val snapshotSerde: GenericSerde[Customer] = new GenericSerde(schemaRegistry)
 
   def createTopology(): Topology = {
     val streamBuilder = new StreamsBuilder
 
     // input commands
-    val commands: KStream[String, Customer.Command] =
+    val commands: KStream[String, Command] =
       streamBuilder.stream(Config.Customer.topicCommands)
 
     // define the snapshot store
@@ -62,7 +62,7 @@ class CustomerHandler(
   }
 
   class CommandTransformer
-    extends Transformer[String, Customer.Command, KeyValue[String, Customer.CommandResult]] {
+    extends Transformer[String, Command, KeyValue[String, Either[CommandError, CommandSuccess]]] {
 
     private var store: KeyValueStore[String, Customer] = _
 
@@ -79,11 +79,11 @@ class CustomerHandler(
      * handle commands as read-process-write without a race condition. We
      * are still able to scale out by adding more partitions.
      */
-    override def transform(key: String, value: Customer.Command): KeyValue[String, Customer.CommandResult] = {
+    override def transform(key: String, value: Command): KeyValue[String, Either[CommandError, CommandSuccess]] = {
       val snapshot = loadSnapshot(key)
       val result = snapshot.exec(value)
       result map {
-        case Customer.CommandSuccess(_, newSnapshot) =>
+        case CommandSuccess(_, newSnapshot) =>
           updateSnapshot(key, newSnapshot)
       }
       KeyValue.pair(key, result)

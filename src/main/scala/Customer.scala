@@ -1,22 +1,10 @@
 import Customer._
 
 object Customer {
-  sealed trait Command
-  case class CommandCreate(code: String, name: String) extends Command
-  case class CommandChangeName(name: String) extends Command
-
-  sealed trait Event
-  case class EventCreated(code: String, name: String) extends Event
-  case class EventNameChanged(oldName: String, newName: String) extends Event
-
   sealed trait State
   case object StateNew extends State
   case object StateNormal extends State
   case object StateDeleted extends State
-
-  case class CommandError(error: String)
-  case class CommandSuccess(events: Seq[Event], snapshot: Customer)
-  type CommandResult = Either[CommandError, CommandSuccess]
 
   def draft: Customer = Customer(StateNew, "", "")
 }
@@ -32,7 +20,7 @@ case class Customer(state: State, code: String, name: String) {
     }
   }
 
-  def exec(command: Command): CommandResult = {
+  def exec(command: Command): Either[CommandError, CommandSuccess] = {
     val result = state match {
       case StateNew => execNew(command)
       case StateNormal => execNormal(command)
