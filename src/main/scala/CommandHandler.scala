@@ -92,7 +92,7 @@ class CommandHandler(
     }
 
     /**
-     * By using the Aggregate Id (code) as the partition key for the commands topic,
+     * By using the aggregate Id (uuid) as the partition key for the commands topic,
      * we get serializability over command handling. This means that no
      * concurrent commands will run for the same invoice, so we can safely
      * handle commands as read-process-write without a race condition. We
