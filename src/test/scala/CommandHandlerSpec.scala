@@ -24,6 +24,12 @@ class CommandHandlerSpec extends AnyFunSpec with Matchers {
       commandTopic.pipeInput(id2, CommandCreate(id2, "code2", "name2"))
       commandTopic.pipeInput(id1, CommandChangeName("name1.1"))
 
+//      it("generate snapshot store") {
+//        val snapshotStore = driver.getKeyValueStore[UUID, Customer](Config.Customer.storeSnapshots)
+//        snapshotStore.get(id1) should be (Customer(id1, Customer.StateNormal, "code1", "name1.1"))
+//        snapshotStore.get(id2) should be (Customer(id2, Customer.StateNormal, "code2", "name2"))
+//      }
+
       it("should generate events") {
         val eventsTopic = driver.createOutputTopic[UUID, Event](Config.Customer.topicEvents)
         val events = eventsTopic.readKeyValuesToList().asScala
@@ -59,7 +65,6 @@ class CommandHandlerSpec extends AnyFunSpec with Matchers {
   describe("when adding two customer with the same") {
     runTopology { driver =>
       val commandTopic = driver.createInputTopic[UUID, Command](Config.Customer.topicCommands)
-      val commandStatusTopic = driver.createOutputTopic[UUID, CommandStatus](Config.Customer.topicCommandsStatus)
 
       val (id1, id2) = (UUID.randomUUID(), UUID.randomUUID())
       commandTopic.pipeInput(id1, CommandCreate(id1, "uniqueCode", "name1"))
@@ -83,6 +88,7 @@ class CommandHandlerSpec extends AnyFunSpec with Matchers {
       }
 
       it("should generate a duplicate error") {
+        val commandStatusTopic = driver.createOutputTopic[UUID, CommandStatus](Config.Customer.topicCommandsStatus)
         val commandStatuses = commandStatusTopic.readKeyValuesToMap().asScala
         commandStatuses should be(Map(
           id2 -> CommandStatus(success = false, Some("Duplicated key")),

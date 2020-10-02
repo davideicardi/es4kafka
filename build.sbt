@@ -38,7 +38,7 @@ scalacOptions in ThisBuild ++= Seq(
 
 
 val avro4sVersion = "4.0.0"
-val kafkaVersion = "2.4.0"
+val kafkaVersion = "2.6.0"
 val scalaTestVersion = "3.2.2"
 
 lazy val root = (project in file("."))

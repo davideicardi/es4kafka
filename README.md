@@ -1,6 +1,7 @@
 
 ## TODO
 
+- implemente delete customer
 - verify if code and name are valid
 - link command vs commandstatus  
 - http apis (commands and queries)
