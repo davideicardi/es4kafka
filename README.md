@@ -67,8 +67,9 @@ Why Kafka Streams?
 - Advanced stream processing capabilities (join, aggregates, ...)
 
 Why Akka Http?
-- Good framework for REST API with a rich ecosystem (we can use Akka also for Kafka ingestion and for distribution, see [Alpakka](https://doc.akka.io/docs/alpakka/current/index.html))
-- It can substitute Kafka Streams in certain scenarios
+- Good framework for REST API with a rich ecosystem (Akka, Akka Stream, Alpakka, ...)
+- We can use Akka also for Kafka ingestion and for distribution, see [Alpakka](https://doc.akka.io/docs/alpakka/current/index.html))
+- Akka Stream can substitute Kafka Streams in certain scenarios
 
 Why AVRO?
 - Fast and compact serialization format
