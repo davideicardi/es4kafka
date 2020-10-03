@@ -84,6 +84,36 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers {
         }
       }
     }
+
+    describe("when adding an author delete it and add it again") {
+      runTopology { driver =>
+        val commandTopic = driver.createInputTopic[String, AuthorCommand](Config.Author.topicCommands)
+
+        val (cmdId1, cmdId2, cmdId3) = (UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
+        commandTopic.pipeInput("spider-man", CreateAuthor(cmdId1, "spider-man", "Peter", "Parker"))
+        commandTopic.pipeInput("spider-man", DeleteAuthor(cmdId2))
+        commandTopic.pipeInput("spider-man", CreateAuthor(cmdId3, "spider-man", "Miles", "Morales"))
+
+        it("should generate events") {
+          val eventsTopic = driver.createOutputTopic[String, AuthorEvent](Config.Author.topicEvents)
+          val events = eventsTopic.readKeyValuesToList().asScala
+            .map(x => x.key -> x.value)
+          events should be(Seq(
+            "spider-man" -> AuthorCreated(cmdId1, "spider-man", "Peter", "Parker"),
+            "spider-man" -> AuthorDeleted(cmdId2),
+            "spider-man" -> AuthorCreated(cmdId3, "spider-man", "Miles", "Morales"),
+          ))
+        }
+
+        it("generate snapshots only for the last one") {
+          val snapshotTopic = driver.createOutputTopic[String, Author](Config.Author.topicSnapshots)
+          val snapshots = snapshotTopic.readKeyValuesToMap().asScala
+          snapshots should be(Map(
+            "spider-man" -> Author("spider-man", "Miles", "Morales"),
+          ))
+        }
+      }
+    }
   }
 
   def runTopology[T](testFun: ScalaTopologyTestDriver => T): T = {

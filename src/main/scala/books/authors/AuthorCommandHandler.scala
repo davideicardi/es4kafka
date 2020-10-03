@@ -33,13 +33,9 @@ class AuthorCommandHandler
                           key: String, value: AuthorCommand
                         ): AuthorEvent = {
     val errorOrSuccess = ensureCodeUniqueness(value)
-      .flatMap(command => {
-        loadSnapshot(command.id, key)
-          .map(snapshot => {
-            val event = execCommand(snapshot, command)
-            updateSnapshot(key, snapshot, event)
-            event
-          })
+      .map(command => {
+        val snapshot = loadSnapshot(key)
+        execCommand(snapshot, command)
       })
 
     errorOrSuccess.merge
@@ -48,33 +44,49 @@ class AuthorCommandHandler
   override def close(): Unit = ()
 
   private def execCommand(snapshot: Author, command: AuthorCommand): AuthorEvent = {
-    implicit val cmdId: UUID = command.id
+    implicit val cmdId: UUID = command.cmdId
+
     command match {
       case CreateAuthor(_, code, firstName, lastName) =>
-        snapshot.create(code, firstName, lastName)
+        val event = snapshot.create(code, firstName, lastName)
+        updateSnapshot(Author(snapshot, event))
+        event
+      case DeleteAuthor(_) =>
+        val event = snapshot.delete()
+        deleteSnapshot(snapshot.code)
+        event
       case UpdateAuthor(_, firstName, lastName) =>
-        snapshot.update(firstName, lastName)
+        val event = snapshot.update(firstName, lastName)
+        updateSnapshot(Author(snapshot, event))
+        event
     }
   }
 
   private def ensureCodeUniqueness(command: AuthorCommand): Either[AuthorError, AuthorCommand] = {
     command match {
       case cmd: CreateAuthor =>
-        if (Option(authorSnapshots.putIfAbsent(cmd.code, Author.draft)).isEmpty) {
+        if (getSnapshot(cmd.code).isEmpty) {
           Right(cmd)
         } else {
-          Left(AuthorError(command.id, "Duplicated code"))
+          Left(AuthorError(command.cmdId, "Duplicated code"))
         }
       case c: AuthorCommand => Right(c) // pass-through
     }
   }
 
-  private def loadSnapshot(cmdId: UUID, key: String): Either[AuthorError, Author] =
+  private def getSnapshot(key: String): Option[Author] =
     Option(authorSnapshots.get(key))
-      .toRight(AuthorError(cmdId, "Author not found"))
 
-  private def updateSnapshot(key: String, snapshot: Author, event: AuthorEvent): Unit = {
-    authorSnapshots.put(key, Author(snapshot, event))
+  private def loadSnapshot(key: String): Author =
+    getSnapshot(key)
+      .getOrElse(Author.draft)
+
+  private def updateSnapshot(snapshot: Author): Unit = {
+    authorSnapshots.put(snapshot.code, snapshot)
+  }
+
+  private def deleteSnapshot(key: String): Unit = {
+    val _ = authorSnapshots.delete(key)
   }
 }
 

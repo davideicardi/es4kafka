@@ -10,7 +10,7 @@ object Author {
       case AuthorUpdated(_, firstName, lastName) =>
         snapshot.copy(firstName = firstName, lastName = lastName)
       case AuthorDeleted(_) =>
-        ???
+        snapshot
       case AuthorError(_, _) =>
         snapshot
     }
@@ -51,6 +51,9 @@ case class Author(code: String, firstName: String, lastName: String) {
   }
 
   def delete()(implicit cmdId: UUID): AuthorEvent = {
-    ???
+    if (this.code == "")
+      AuthorError(cmdId, "Entity not created")
+    else
+      AuthorDeleted(cmdId)
   }
 }
