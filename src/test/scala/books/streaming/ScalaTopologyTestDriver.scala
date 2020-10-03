@@ -1,3 +1,5 @@
+package books.streaming
+
 import java.util.Properties
 
 import org.apache.kafka.common.serialization.Serde

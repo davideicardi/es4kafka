@@ -44,7 +44,7 @@ val scalaTestVersion = "3.2.2"
 lazy val root = (project in file("."))
   .configs(IntegrationTest)
   .settings(
-    name := "simple-es-kafka",
+    name := "books-catalog-es",
     Defaults.itSettings,
     libraryDependencies ++= Seq(
       "org.apache.kafka" %% "kafka-streams-scala" % kafkaVersion,
