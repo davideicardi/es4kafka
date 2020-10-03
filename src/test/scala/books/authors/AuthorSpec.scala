@@ -1,8 +1,7 @@
-package books.aggregates
+package books.authors
 
 import java.util.UUID
 
-import books.events.{AuthorCreated, AuthorUpdated, InvalidOperation}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -28,7 +27,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
       implicit val cmdId: UUID = UUID.randomUUID()
       val event = target.update("Peter", "Parker")
 
-      val expectedEvent = InvalidOperation(cmdId, "Entity not created")
+      val expectedEvent = AuthorError(cmdId, "Entity not created")
       event should be(expectedEvent)
       Author(target, event) should be(target)
     }
@@ -50,7 +49,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
       implicit val cmdId: UUID = UUID.randomUUID()
       val event = target.update("", "K")
 
-      val expectedEvent = InvalidOperation(cmdId, "Invalid firstName")
+      val expectedEvent = AuthorError(cmdId, "Invalid firstName")
       event should be(expectedEvent)
       Author(target, event) should be(target)
     }
@@ -59,7 +58,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
       implicit val cmdId: UUID = UUID.randomUUID()
       val event = target.create("batman", "Bruce", "Banner")
 
-      val expectedEvent = InvalidOperation(cmdId, "Entity already created")
+      val expectedEvent = AuthorError(cmdId, "Entity already created")
       event should be(expectedEvent)
       Author(target, event) should be(target)
     }

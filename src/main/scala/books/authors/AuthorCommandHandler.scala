@@ -1,19 +1,18 @@
-package books.streaming
+package books.authors
 
 import java.util.UUID
 
 import books.Config
-import books.aggregates.Author
-import books.commands.{Command, CreateAuthor, UpdateAuthor}
-import books.events.{Event, InvalidOperation}
-import org.apache.kafka.streams.KeyValue
-import org.apache.kafka.streams.kstream.Transformer
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey
 import org.apache.kafka.streams.processor.ProcessorContext
 import org.apache.kafka.streams.state.KeyValueStore
 
-// TODO eval to use ValueTransformerWithKey
+/**
+ * Transform a command to an event.
+ *  AuthorCommand -> AuthorEvent
+ */
 class AuthorCommandHandler
-  extends Transformer[String, Command, KeyValue[String, Event]] {
+  extends ValueTransformerWithKey[String, AuthorCommand, AuthorEvent] {
 
   private var authorSnapshots: KeyValueStore[String, Author] = _
 
@@ -31,8 +30,8 @@ class AuthorCommandHandler
    * are still able to scale out by adding more partitions.
    */
   override def transform(
-                          key: String, value: Command
-                        ): KeyValue[String, Event] = {
+                          key: String, value: AuthorCommand
+                        ): AuthorEvent = {
     val errorOrSuccess = ensureCodeUniqueness(value)
       .flatMap(command => {
         loadSnapshot(command.id, key)
@@ -43,12 +42,12 @@ class AuthorCommandHandler
           })
       })
 
-    KeyValue.pair(key, errorOrSuccess.merge)
+    errorOrSuccess.merge
   }
 
   override def close(): Unit = ()
 
-  private def execCommand(snapshot: Author, command: Command): Event = {
+  private def execCommand(snapshot: Author, command: AuthorCommand): AuthorEvent = {
     implicit val cmdId: UUID = command.id
     command match {
       case CreateAuthor(_, code, firstName, lastName) =>
@@ -58,23 +57,23 @@ class AuthorCommandHandler
     }
   }
 
-  private def ensureCodeUniqueness(command: Command): Either[InvalidOperation, Command] = {
+  private def ensureCodeUniqueness(command: AuthorCommand): Either[AuthorError, AuthorCommand] = {
     command match {
       case cmd: CreateAuthor =>
         if (Option(authorSnapshots.putIfAbsent(cmd.code, Author.draft)).isEmpty) {
           Right(cmd)
         } else {
-          Left(InvalidOperation(command.id, "Duplicated code"))
+          Left(AuthorError(command.id, "Duplicated code"))
         }
-      case c: Command => Right(c) // pass-through
+      case c: AuthorCommand => Right(c) // pass-through
     }
   }
 
-  private def loadSnapshot(cmdId: UUID, key: String): Either[InvalidOperation, Author] =
+  private def loadSnapshot(cmdId: UUID, key: String): Either[AuthorError, Author] =
     Option(authorSnapshots.get(key))
-      .toRight(InvalidOperation(cmdId, "Author not found"))
+      .toRight(AuthorError(cmdId, "Author not found"))
 
-  private def updateSnapshot(key: String, snapshot: Author, event: Event): Unit = {
+  private def updateSnapshot(key: String, snapshot: Author, event: AuthorEvent): Unit = {
     authorSnapshots.put(key, Author(snapshot, event))
   }
 }
