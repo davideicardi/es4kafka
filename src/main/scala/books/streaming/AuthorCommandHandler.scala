@@ -64,7 +64,7 @@ class AuthorCommandHandler
         if (Option(authorSnapshots.putIfAbsent(cmd.code, Author.draft)).isEmpty) {
           Right(cmd)
         } else {
-          Left(InvalidOperation(command.id, "Duplicated key"))
+          Left(InvalidOperation(command.id, "Duplicated code"))
         }
       case c: Command => Right(c) // pass-through
     }
