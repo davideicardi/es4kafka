@@ -85,7 +85,7 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers {
       }
     }
 
-    describe("when adding an author delete it and add it again") {
+    describe("when add an author, delete it and add it again") {
       runTopology { driver =>
         val commandTopic = driver.createInputTopic[String, AuthorCommand](Config.Author.topicCommands)
 
