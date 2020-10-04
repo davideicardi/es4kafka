@@ -26,6 +26,7 @@ import spray.json._
 
 import scala.concurrent._
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
 
 class AuthorsRoutes(
                      commandSender: AuthorsCommandSender,
@@ -50,6 +51,18 @@ class AuthorsRoutes(
             complete {
               commandSender.send(command.code, command)
                 .map(_ => command.cmdId.toString)
+            }
+          }
+        }
+      },
+      get {
+        path("authors") {
+          parameter("_local".as[Boolean].optional) { localOnly =>
+            complete {
+              if (localOnly.getOrElse(false))
+                authorStateReader.fetchLocalAuthors()
+              else
+                authorStateReader.fetchAllAuthors()
             }
           }
         }
@@ -92,6 +105,41 @@ class AuthorsStateReader(
                           hostInfo: HostInfoServices
                         )(implicit system: ActorSystem, executionContext: ExecutionContext) {
   implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
+
+  def fetchAllAuthors(): Future[Seq[Author]] = {
+    val futureList = metadataService.streamsMetadataForStore(Config.Author.storeSnapshots)
+      .map(host => {
+        fetchRemoteAuthors(host)
+      })
+
+    Future.sequence(futureList)
+      .map(_.flatten)
+  }
+
+  def fetchLocalAuthors(): Future[Seq[Author]] = Future {
+    val optionalStore = StateStores.waitUntilStoreIsQueryable(
+      Config.Author.storeSnapshots,
+      QueryableStoreTypes.keyValueStore[String, Author](),
+      streams
+    )
+
+    optionalStore.map { store =>
+      val iterator = store.all()
+      try {
+        iterator.asScala.toSeq.map(_.value)
+      } finally {
+        iterator.close()
+      }
+    }.getOrElse(Seq[Author]())
+  }
+
+  private def fetchRemoteAuthors(host: HostStoreInfo): Future[Seq[Author]] = {
+    val requestPath = s"http://${host.host}:${host.port}/authors?_local=true"
+    Http().singleRequest(HttpRequest(uri = requestPath))
+      .flatMap { response =>
+        Unmarshal(response.entity).to[Seq[Author]]
+      }
+  }
 
   def fetchAuthor(code: String): Future[Option[Author]] = {
     println(s"fetchAuthor $code")
