@@ -4,38 +4,42 @@ import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.state.HostInfo
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
-import spray.json.DefaultJsonProtocol._
+
 import scala.concurrent._
 import iq_helpers.{HostStoreInfo, MetadataService}
-import spray.json._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import books.authors.{AuthorsCommandSender, AuthorsRoutes}
+import com.davideicardi.kaa.SchemaRegistry
+import iq_helpers.http.MetadataRoutes
 
-//object AkkaHttpEntitiesJsonFormats {
-//  implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author)
-//}
-
-class BooksRestApi(val streams: KafkaStreams, val hostInfo: HostInfo) {
-  implicit val HostStoreInfoFormat: RootJsonFormat[HostStoreInfo] = jsonFormat2(HostStoreInfo)
-
+class BooksRestApi(
+                    streams: KafkaStreams,
+                    hostInfo: HostInfo,
+                    schemaRegistry: SchemaRegistry
+                  )
+                  (implicit system: ActorSystem, executionContext: ExecutionContext){
   val metadataService = new MetadataService(streams)
   var bindingFuture: Option[Future[Http.ServerBinding]] = None
 
-  implicit val system: ActorSystem = ActorSystem("rating-system")
-  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-
   var isStateStoredReady: Boolean = false
-
   def setReady(isReady: Boolean): Unit = {
     isStateStoredReady = isReady
   }
 
-  def start(): Unit = {
-    //val emailRegexPattern = """\w+""".r
-    val storeNameRegexPattern = """\w+""".r
+  // TODO On every routes we must check that state is ready:
+  //  if (!isStateStoredReady) {
+  //    complete(HttpResponse(StatusCodes.InternalServerError, entity = "state stored not queryable, possible due to re-balancing"))
+  //  }
+  // We can add a middleware?
 
-    val route =
+
+  def start(): Unit = {
+
+    val metadataRoutes = new MetadataRoutes(metadataService)
+    // TODO Stop the command sender
+    val authorsRoutes = new AuthorsRoutes(new AuthorsCommandSender(schemaRegistry))
+
+    val route = metadataRoutes.createRoute() ~ authorsRoutes.createRoute()
     //      path("ratingByEmail") {
     //        get {
     //          parameters('email.as[String]) { (email) =>
@@ -74,33 +78,17 @@ class BooksRestApi(val streams: KafkaStreams, val hostInfo: HostInfo) {
     //          }
     //        }
     //      } ~
-      path("instances") {
-        get {
-          if (!isStateStoredReady) {
-            complete(HttpResponse(StatusCodes.InternalServerError, entity = "state stored not queryable, possible due to re-balancing"))
-          }
-          complete(StatusCodes.OK, metadataService.streamsMetadata())
-        }
-      } ~
-        path("instances" / storeNameRegexPattern) { storeName =>
-          get {
-            if (!isStateStoredReady) {
-              complete(HttpResponse(StatusCodes.InternalServerError, entity = "state stored not queryable, possible due to re-balancing"))
-            }
-            complete(StatusCodes.OK, metadataService.streamsMetadataForStore(storeName))
-          }
-        }
 
-
-    bindingFuture = Some(Http().newServerAt(hostInfo.host(), hostInfo.port())
-      .bindFlow(route))
+    bindingFuture = Some {
+      Http().newServerAt(hostInfo.host(), hostInfo.port())
+        .bindFlow(route)
+    }
     println(s"Server online at http://${hostInfo.host}:${hostInfo.port}/\n")
 
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
       stop()
     }))
   }
-
 
   //  def fetchRemoteRatingByEmail(host:HostStoreInfo, email: String) : Future[List[Rating]] = {
   //

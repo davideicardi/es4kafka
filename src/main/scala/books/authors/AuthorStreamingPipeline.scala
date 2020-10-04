@@ -4,7 +4,7 @@ import books.Config
 import com.davideicardi.kaa.SchemaRegistry
 import com.davideicardi.kaa.kafka.GenericSerde
 import org.apache.kafka.streams.scala.ImplicitConversions._
-import org.apache.kafka.streams.scala.Serdes.String
+import org.apache.kafka.streams.scala.Serdes._
 import org.apache.kafka.streams.scala.StreamsBuilder
 import org.apache.kafka.streams.state.Stores
 

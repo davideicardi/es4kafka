@@ -2,11 +2,11 @@ package books
 
 import java.util.concurrent.CountDownLatch
 
+import akka.actor.ActorSystem
 import books.http.BooksRestApi
 import books.streaming.StreamingPipeline
 import com.davideicardi.kaa.KaaSchemaRegistry
 import org.apache.kafka.streams.KafkaStreams
-import org.apache.kafka.streams.state.HostInfo
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
@@ -17,19 +17,18 @@ object EntryPoint extends App {
   run()
 
   private def run(): Unit = {
-    val REST_ENDPOINT = new HostInfo("localhost", 9081)
-    val KAFKA_BROKERS = "localhost:9092"
+    System.out.println(s"Connecting to Kafka cluster via bootstrap servers ${Config.Kafka.kafka_brokers}")
+    System.out.println(s"REST endpoint at http://${Config.Rest.listen_endpoint.host}:${Config.Rest.listen_endpoint.port}")
 
-    System.out.println(s"Connecting to Kafka cluster via bootstrap servers $KAFKA_BROKERS")
-    System.out.println(s"REST endpoint at http://${REST_ENDPOINT.host}:${REST_ENDPOINT.port}")
+    implicit val system: ActorSystem = ActorSystem(Config.applicationId)
 
-    val schemaRegistry = new KaaSchemaRegistry(KAFKA_BROKERS)
-    val streamingPipeline = new StreamingPipeline(KAFKA_BROKERS, schemaRegistry)
+    val schemaRegistry = new KaaSchemaRegistry(Config.Kafka.kafka_brokers)
+    val streamingPipeline = new StreamingPipeline(Config.Kafka.kafka_brokers, schemaRegistry)
     val streams: KafkaStreams = new KafkaStreams(
       streamingPipeline.createTopology(),
       streamingPipeline.properties)
 
-    val restService = new BooksRestApi(streams, REST_ENDPOINT)
+    val restService =  new BooksRestApi(streams, Config.Rest.listen_endpoint, schemaRegistry)
 
     // Can only add this in State == CREATED
     streams.setUncaughtExceptionHandler(( _ :Thread, throwable : Throwable) => {

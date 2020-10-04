@@ -55,6 +55,8 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
       "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % AkkaHttpVersion,
+      // rest api kafka producer
+      "com.typesafe.akka" %% "akka-stream-kafka" % "2.0.5",
       // avro schema registry
       "com.davideicardi" %% "kaa" % "0.3.4",
       // logging (for kafka)
