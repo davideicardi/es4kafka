@@ -83,3 +83,8 @@ Why Kaa Schema Registry?
 - http apis (commands and queries)
 - create topics at startup with correct properties (compact, retention, ...) 
 - test with multiple instances
+
+## Credits
+
+- Event Sourcing with Kafka Stream: https://github.com/amitayh/event-sourcing-kafka-streams
+- Kafka Streams Interactive Queries with Akka Http: https://sachabarbs.wordpress.com/2019/05/08/kafkastreams-interactive-queries/

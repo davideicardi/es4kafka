@@ -3,7 +3,7 @@ package books
 import java.util.concurrent.CountDownLatch
 
 import akka.actor.ActorSystem
-import books.http.BooksRestApi
+import books.http.HttpServer
 import books.streaming.StreamingPipeline
 import com.davideicardi.kaa.KaaSchemaRegistry
 import org.apache.kafka.streams.KafkaStreams
@@ -28,7 +28,7 @@ object EntryPoint extends App {
       streamingPipeline.createTopology(),
       streamingPipeline.properties)
 
-    val restService =  new BooksRestApi(streams, Config.Rest.listen_endpoint, schemaRegistry)
+    val restService =  new HttpServer(streams, Config.Rest.listen_endpoint, schemaRegistry)
 
     // Can only add this in State == CREATED
     streams.setUncaughtExceptionHandler(( _ :Thread, throwable : Throwable) => {
@@ -76,7 +76,7 @@ object EntryPoint extends App {
   }
 
 
-  private def shutDown(streams: KafkaStreams, restService: BooksRestApi): Unit = {
+  private def shutDown(streams: KafkaStreams, restService: HttpServer): Unit = {
     doneSignal.countDown()
     streams.close()
     restService.stop()
