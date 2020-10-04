@@ -83,6 +83,9 @@ Why Kaa Schema Registry?
 - http apis (commands and queries)
 - create topics at startup with correct properties (compact, retention, ...) 
 - test with multiple instances
+- review TODO
+- remove println
+- test with multiple partitions/instances
 
 ## Credits
 

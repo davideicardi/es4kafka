@@ -23,7 +23,10 @@ object EntryPoint extends App {
     implicit val system: ActorSystem = ActorSystem(Config.applicationId)
 
     val schemaRegistry = new KaaSchemaRegistry(Config.Kafka.kafka_brokers)
-    val streamingPipeline = new StreamingPipeline(Config.Kafka.kafka_brokers, schemaRegistry)
+    val streamingPipeline = new StreamingPipeline(
+      Config.Kafka.kafka_brokers,
+      schemaRegistry,
+      Config.Rest.listen_endpoint)
     val streams: KafkaStreams = new KafkaStreams(
       streamingPipeline.createTopology(),
       streamingPipeline.properties)
@@ -52,6 +55,7 @@ object EntryPoint extends App {
       shutDown(streams,restService)
     }))
 
+    // TODO
     // Always (and unconditionally) clean local state prior to starting the processing topology.
     // We opt for this unconditional call here because this will make it easier for you to
     // play around with the example when resetting the application for doing a re-run
@@ -65,7 +69,6 @@ object EntryPoint extends App {
     // here but rather only when it is truly needed, i.e., only under certain conditions
     // (e.g., the presence of a command line flag for your app).
     // See `ApplicationResetExample.java` for a production-like example.
-
     println("Cleanup KafkaStream...")
     streams.cleanUp()
 

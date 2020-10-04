@@ -7,11 +7,10 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 
 import scala.concurrent._
-import iq_helpers.{HostStoreInfo, MetadataService}
-import books.authors.AuthorsCommandSender
-import books.authors.http.{AuthorsCommandSender, AuthorsRoutes}
+import common.{HostInfoServices, MetadataService}
+import books.authors.http._
 import com.davideicardi.kaa.SchemaRegistry
-import iq_helpers.http.MetadataRoutes
+import common.http.MetadataRoutes
 
 class HttpServer(
                     streams: KafkaStreams,
@@ -39,7 +38,10 @@ class HttpServer(
 
     val metadataRoutes = new MetadataRoutes(metadataService)
     // TODO Stop the command sender
-    val authorsRoutes = new AuthorsRoutes(new AuthorsCommandSender(schemaRegistry))
+    val authorsRoutes = new AuthorsRoutes(
+      new AuthorsCommandSender(schemaRegistry),
+      new AuthorsStateReader(metadataService, streams, new HostInfoServices(hostInfo))
+    )
 
     val route = metadataRoutes.createRoute() ~ authorsRoutes.createRoute()
 
@@ -61,10 +63,5 @@ class HttpServer(
         .onComplete(_ => system.terminate()) // and shutdown when done
       )
     bindingFuture = None
-  }
-
-  def thisHost(hostStoreInfo: HostStoreInfo): Boolean = {
-    hostStoreInfo.host.equals(hostInfo.host()) &&
-      hostStoreInfo.port == hostInfo.port
   }
 }

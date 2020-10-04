@@ -1,6 +1,6 @@
-package iq_helpers
+package common
 
-import org.apache.kafka.streams.KafkaStreams
+import org.apache.kafka.streams.{KafkaStreams, KeyQueryMetadata}
 import org.apache.kafka.streams.state.StreamsMetadata
 import java.util.stream.Collectors
 
@@ -22,7 +22,6 @@ class MetadataService(streams: KafkaStreams) {
    * @return List of { @link HostStoreInfo}
    */
   def streamsMetadata() : List[HostStoreInfo] = {
-
     // Get metadata for all of the instances of this Kafka Streams application
     val metadata = streams.allMetadata
     mapInstancesToHostStoreInfo(metadata)
@@ -37,12 +36,10 @@ class MetadataService(streams: KafkaStreams) {
    * @return List of { @link HostStoreInfo}
    */
   def streamsMetadataForStore(store: String) : List[HostStoreInfo] = {
-
     // Get metadata for all of the instances of this Kafka Streams application hosting the store
     val metadata = streams.allMetadataForStore(store)
     mapInstancesToHostStoreInfo(metadata)
   }
-
 
   /**
    * Find the metadata for the instance of this Kafka Streams Application that has the given
@@ -56,7 +53,7 @@ class MetadataService(streams: KafkaStreams) {
     // Get metadata for the instances of this Kafka Streams application hosting the store and
     // potentially the value for key
     val metadata = streams.queryMetadataForKey(store, key, serializer)
-    if (metadata == null)
+    if (metadata == null || metadata == KeyQueryMetadata.NOT_AVAILABLE)
       throw new NotFoundException(
         s"No metadata could be found for store : $store, and key type : ${key.getClass.getName}")
 

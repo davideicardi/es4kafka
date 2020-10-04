@@ -11,6 +11,7 @@ import org.apache.kafka.streams.{TestInputTopic, TestOutputTopic, Topology, Topo
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.apache.kafka.streams.scala.Serdes._
+import org.apache.kafka.streams.state.HostInfo
 
 import scala.jdk.CollectionConverters._
 
@@ -20,6 +21,7 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers {
   val target = new StreamingPipeline(
     "dummy:9999",
     schemaRegistry,
+    new HostInfo("dummy", 9999)
   )
   implicit val commandSerde: GenericSerde[AuthorCommand] = new GenericSerde(schemaRegistry)
   implicit val eventSerde: GenericSerde[AuthorEvent] = new GenericSerde(schemaRegistry)
@@ -54,12 +56,6 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers {
             "superman" -> Author("superman", "Clark", "Kent"),
           ))
         }
-
-//        it("should generate stores") {
-//          val store = driver.getKeyValueStore[String, Author](Config.Author.storeSnapshots2)
-//          store.get("spider-man") should be(Author("spider-man", "Miles", "Morales"))
-//          store.get("superman") should be(Author("superman", "Clark", "Kent"))
-//        }
       }
     }
 

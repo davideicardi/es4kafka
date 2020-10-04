@@ -20,7 +20,7 @@ object AuthorStreamingPipeline {
     // define stores
     streamsBuilder.addStateStore(
       Stores.keyValueStoreBuilder(
-        Stores.persistentKeyValueStore(Config.Author.storeSnapshots),
+        Stores.inMemoryKeyValueStore(Config.Author.storeSnapshots),
         String,
         snapshotSerde))
 
@@ -37,18 +37,11 @@ object AuthorStreamingPipeline {
     eventsStream.to(Config.Author.topicEvents)
 
     // snapshots table
-//    val snapshotStoreSupplier = Stores.inMemoryKeyValueStore(Config.Author.storeSnapshots2)
-//    Stores.keyValueStoreBuilder(
-//      snapshotStoreSupplier,
-//      String,
-//      snapshotSerde
-//    ).build()
-
     val snapshotTable = eventsStream
       .groupByKey
       .aggregate(Author.draft)(
         (_, event, snapshot) => Author(snapshot, event)
-      )//(Materialized.as(snapshotStoreSupplier))
+      )
     snapshotTable.toStream.to(Config.Author.topicSnapshots)
   }
 }
