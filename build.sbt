@@ -40,17 +40,27 @@ scalacOptions in ThisBuild ++= Seq(
 val avro4sVersion = "4.0.0"
 val kafkaVersion = "2.6.0"
 val scalaTestVersion = "3.2.2"
-
+val AkkaVersion = "2.6.8"
+val AkkaHttpVersion = "10.2.1"
 lazy val root = (project in file("."))
   .configs(IntegrationTest)
   .settings(
     name := "books-catalog-es",
     Defaults.itSettings,
     libraryDependencies ++= Seq(
+      // kafka streams
       "org.apache.kafka" %% "kafka-streams-scala" % kafkaVersion,
       "org.apache.kafka" % "kafka-clients" % kafkaVersion,
-      "org.apache.kafka" % "kafka-streams-test-utils" % kafkaVersion % "it,test",
+      // rest api
+      "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
+      "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
+      "com.typesafe.akka" %% "akka-http-spray-json" % AkkaHttpVersion,
+      // avro schema registry
       "com.davideicardi" %% "kaa" % "0.3.4",
+      // logging (for kafka)
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      // test
+      "org.apache.kafka" % "kafka-streams-test-utils" % kafkaVersion % "it,test",
       "org.scalatest" %% "scalatest-funspec"       % scalaTestVersion % "it,test",
       "org.scalatest" %% "scalatest-shouldmatchers" % scalaTestVersion % "it,test",
     )

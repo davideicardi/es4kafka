@@ -16,7 +16,8 @@ services:
       KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_CREATE_TOPICS: 'books.commands.authors:1:1'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true' # TODO eval to put this to false
       KAFKA_DELETE_TOPIC_ENABLE: 'true'
     volumes:
      - /var/run/docker.sock:/var/run/docker.sock

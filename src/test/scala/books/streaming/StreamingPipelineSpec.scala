@@ -46,7 +46,7 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers {
           ))
         }
 
-        it("generate snapshots") {
+        it("should generate snapshots") {
           val snapshotTopic = driver.createOutputTopic[String, Author](Config.Author.topicSnapshots)
           val snapshots = snapshotTopic.readKeyValuesToMap().asScala
           snapshots should be(Map(
@@ -54,6 +54,12 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers {
             "superman" -> Author("superman", "Clark", "Kent"),
           ))
         }
+
+//        it("should generate stores") {
+//          val store = driver.getKeyValueStore[String, Author](Config.Author.storeSnapshots2)
+//          store.get("spider-man") should be(Author("spider-man", "Miles", "Morales"))
+//          store.get("superman") should be(Author("superman", "Clark", "Kent"))
+//        }
       }
     }
 

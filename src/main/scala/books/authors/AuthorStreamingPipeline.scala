@@ -3,9 +3,9 @@ package books.authors
 import books.Config
 import com.davideicardi.kaa.SchemaRegistry
 import com.davideicardi.kaa.kafka.GenericSerde
+import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.scala.Serdes.String
 import org.apache.kafka.streams.scala.StreamsBuilder
-import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.state.Stores
 
 /**
@@ -37,9 +37,18 @@ object AuthorStreamingPipeline {
     eventsStream.to(Config.Author.topicEvents)
 
     // snapshots table
+//    val snapshotStoreSupplier = Stores.inMemoryKeyValueStore(Config.Author.storeSnapshots2)
+//    Stores.keyValueStoreBuilder(
+//      snapshotStoreSupplier,
+//      String,
+//      snapshotSerde
+//    ).build()
+
     val snapshotTable = eventsStream
       .groupByKey
-      .aggregate(Author.draft)((_, event, snapshot) => Author(snapshot, event))
+      .aggregate(Author.draft)(
+        (_, event, snapshot) => Author(snapshot, event)
+      )//(Materialized.as(snapshotStoreSupplier))
     snapshotTable.toStream.to(Config.Author.topicSnapshots)
   }
 }
