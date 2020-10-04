@@ -33,6 +33,24 @@ NOTE: For the current model this is for sure an over-kill architecture, but the 
 
 ![technical-view](docs/technical-view.drawio.png)
 
+## Microservices
+
+This example can be used as a template for a service/microservice.
+
+One important aspect to note is that each microservice should expose a public "interface" to the rest of the world.
+In this case the public interace is composed by:
+- **REST Api**
+    - get author
+    - create author
+    - get all authors
+    - ...
+- **Kafka topics**
+    - events
+    - snapshots
+
+Other microservice should just rely on this public interface. Potentially the implementation can change,
+we can use another technology instead of Akka Stream, but the public interface can remain the same.
+
 ## Why?
 
 Why CQRS?
@@ -49,6 +67,7 @@ Why Event Sourcing?
 - Events are the single source of truth
 - Business logic separation
 - Adding projections easily
+- Schema evolution can be a little easier (but always a pain!)
 - Dedicated storage can be added if needed for a specific projection (Elasticsearch, MongoDb, Cassandra, ...)
 
 Why JVM?
@@ -59,12 +78,16 @@ Why Scala?
 
 Why Kafka?
 - Fast, scalable and reliable storage
-- It can be used as a database and as a message bus
-- Reduce infrastructure components
+- It can be used for both storage and message bus (Reduce infrastructure components)
 
 Why Kafka Streams?
-- "Easy" exactly-once semantic with Kafka
+- Scalable (each instance works on a set of partition)
+- Event driven architecture are very hard to implement, Kafka Streams makes it a little less harder
+- "Easy" [exactly-once](https://www.confluent.io/blog/enabling-exactly-once-kafka-streams/) semantic with Kafka
 - Advanced stream processing capabilities (join, aggregates, ...)
+- CONTRO:
+    - quite hard to find good examples
+    - reset state can be difficult
 
 Why Akka Http?
 - Good framework for REST API with a rich ecosystem (Akka, Akka Stream, Alpakka, ...)
