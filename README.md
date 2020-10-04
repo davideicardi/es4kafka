@@ -80,14 +80,16 @@ Why Kaa Schema Registry?
 
 ## TODO
 
-- http apis (commands and queries)
+- unit test rest api
 - create topics at startup with correct properties (compact, retention, ...) 
-- test with multiple instances
-- review TODO
-- remove println
+- extract common code
+- review TODO/println
 - test with multiple partitions/instances
+- add books
 
 ## Credits
+
+Inspired by:
 
 - Event Sourcing with Kafka Stream: https://github.com/amitayh/event-sourcing-kafka-streams
 - Kafka Streams Interactive Queries with Akka Http: https://sachabarbs.wordpress.com/2019/05/08/kafkastreams-interactive-queries/
