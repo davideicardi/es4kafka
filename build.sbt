@@ -62,8 +62,11 @@ lazy val root = (project in file("."))
       // logging (for kafka)
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       // test
+      "org.scalamock" %% "scalamock" % "4.4.0" % "it,test",
       "org.apache.kafka" % "kafka-streams-test-utils" % kafkaVersion % "it,test",
       "org.scalatest" %% "scalatest-funspec"       % scalaTestVersion % "it,test",
       "org.scalatest" %% "scalatest-shouldmatchers" % scalaTestVersion % "it,test",
+      "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % "it,test",
+      "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % "it,test",
     )
   )
