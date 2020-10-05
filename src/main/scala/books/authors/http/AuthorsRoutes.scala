@@ -28,15 +28,17 @@ import scala.concurrent._
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
+object AuthorsRoutes {
+  implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
+  implicit val CreateAuthorFormat: RootJsonFormat[CreateAuthorModel] = jsonFormat3(CreateAuthorModel)
+  implicit val UpdateAuthorFormat: RootJsonFormat[UpdateAuthorModel] = jsonFormat2(UpdateAuthorModel)
+}
+
 class AuthorsRoutes(
                      commandSender: CommandSender[AuthorCommand],
                      authorStateReader: SnapshotStateReader[String, Author],
                    ) {
-
-  private implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
-  private implicit val CreateAuthorFormat: RootJsonFormat[CreateAuthorModel] = jsonFormat3(CreateAuthorModel)
-  private implicit val UpdateAuthorFormat: RootJsonFormat[UpdateAuthorModel] = jsonFormat2(UpdateAuthorModel)
-
+  import AuthorsRoutes._
   def createRoute()(implicit executionContext: ExecutionContext): Route =
     concat(
       post {
@@ -58,6 +60,15 @@ class AuthorsRoutes(
               commandSender.send(code, command)
                 .map(_ => command.cmdId.toString)
             }
+          }
+        }
+      },
+      delete {
+        path("authors" / Segment) { code =>
+          val command = DeleteAuthor(UUID.randomUUID())
+          complete {
+            commandSender.send(code, command)
+              .map(_ => command.cmdId.toString)
           }
         }
       },

@@ -49,7 +49,7 @@ In this case the public interace is composed by:
     - snapshots
 
 Other microservice should just rely on this public interface. Potentially the implementation can change,
-we can use another technology instead of Akka Stream, but the public interface can remain the same.
+we can use another technology instead of Kafka Streams, but the public interface can remain the same.
 
 ## Why?
 
@@ -100,6 +100,33 @@ Why AVRO?
 Why Kaa Schema Registry?
 - Simple [schema registry](https://medium.com/slalom-technology/introduction-to-schema-registry-in-kafka-915ccf06b902) library with Kafka persistence
 
+
+## Usage
+
+Requirements:
+- scala sbt
+- JVM 8 or 11
+- Docker (for integrations tests)
+
+Run unit tests:
+
+```
+sbt test
+```
+
+Run the app:
+
+```
+sbt run
+```
+
+REST API are available at: http://localhost:9081/
+
+- `GET /authors` - gel all authors
+- `POST /authors` - create an author
+    - body: `CreateAuthorModel` as json
+- `PUT /authors/{code}` - update an author
+- `DELETE /authors/{code}` - delete an author
 
 ## TODO
 
