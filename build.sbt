@@ -65,5 +65,7 @@ lazy val root = (project in file("."))
       "org.apache.kafka" % "kafka-streams-test-utils" % kafkaVersion % "it,test",
       "org.scalatest" %% "scalatest-funspec"       % scalaTestVersion % "it,test",
       "org.scalatest" %% "scalatest-shouldmatchers" % scalaTestVersion % "it,test",
+      "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % "it,test",
+      "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % "it,test",
     )
   )

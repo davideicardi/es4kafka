@@ -13,7 +13,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.kafka.ProducerSettings
 import akka.kafka.scaladsl.SendProducer
 import books.Config
-import books.authors.{Author, AuthorCommand, CreateAuthor}
+import books.authors._
 import com.davideicardi.kaa.SchemaRegistry
 import com.davideicardi.kaa.kafka.GenericSerde
 import common._
@@ -29,18 +29,13 @@ import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
 class AuthorsRoutes(
-                     commandSender: AuthorsCommandSender,
-                     authorStateReader: AuthorsStateReader,
+                     commandSender: CommandSender[AuthorCommand],
+                     authorStateReader: SnapshotStateReader[String, Author],
                    ) {
-
-  case class CreateAuthorModel(code: String, firstName: String, lastName: String)
-
-  case class UpdateAuthorModel(firstName: String, lastName: String)
-
-  case class DeleteAuthorModel()
 
   private implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
   private implicit val CreateAuthorFormat: RootJsonFormat[CreateAuthorModel] = jsonFormat3(CreateAuthorModel)
+  private implicit val UpdateAuthorFormat: RootJsonFormat[UpdateAuthorModel] = jsonFormat2(UpdateAuthorModel)
 
   def createRoute()(implicit executionContext: ExecutionContext): Route =
     concat(
@@ -55,14 +50,22 @@ class AuthorsRoutes(
           }
         }
       },
+      put {
+        path("authors" / Segment) { code =>
+          entity(as[UpdateAuthorModel]) { model =>
+            val command = UpdateAuthor(UUID.randomUUID(), model.firstName, model.lastName)
+            complete {
+              commandSender.send(code, command)
+                .map(_ => command.cmdId.toString)
+            }
+          }
+        }
+      },
       get {
         path("authors") {
           parameter("_local".as[Boolean].optional) { localOnly =>
             complete {
-              if (localOnly.getOrElse(false))
-                authorStateReader.fetchLocalAuthors()
-              else
-                authorStateReader.fetchAllAuthors()
+              authorStateReader.fetchAll(localOnly.getOrElse(false))
             }
           }
         }
@@ -71,7 +74,7 @@ class AuthorsRoutes(
         path("authors" / Segment) { code =>
           rejectEmptyResponse {
             complete {
-              authorStateReader.fetchAuthor(code)
+              authorStateReader.fetchOne(code)
             }
           }
         }
@@ -80,7 +83,9 @@ class AuthorsRoutes(
 }
 
 // TODO Eval to put this in common?
-class AuthorsCommandSender(schemaRegistry: SchemaRegistry)(implicit actorSystem: ActorSystem) {
+class AuthorsCommandSender(
+                            schemaRegistry: SchemaRegistry
+                          )(implicit actorSystem: ActorSystem) extends CommandSender[AuthorCommand] {
   private implicit val commandSerde: GenericSerde[AuthorCommand] = new GenericSerde(schemaRegistry)
 
   private val config = actorSystem.settings.config.getConfig("akka.kafka.producer")
@@ -103,20 +108,30 @@ class AuthorsStateReader(
                           metadataService: MetadataService,
                           streams: KafkaStreams,
                           hostInfo: HostInfoServices
-                        )(implicit system: ActorSystem, executionContext: ExecutionContext) {
+                        )
+                        (
+                          implicit system: ActorSystem, executionContext: ExecutionContext
+                        ) extends SnapshotStateReader[String, Author]{
   implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
 
-  def fetchAllAuthors(): Future[Seq[Author]] = {
+  def fetchAll(onlyLocal: Boolean): Future[Seq[Author]] = {
+    if (onlyLocal)
+      fetchAllLocal()
+    else
+      fetchAllRemotes()
+  }
+
+  private def fetchAllRemotes(): Future[Seq[Author]] = {
     val futureList = metadataService.streamsMetadataForStore(Config.Author.storeSnapshots)
       .map(host => {
-        fetchRemoteAuthors(host)
+        fetchAllRemote(host)
       })
 
     Future.sequence(futureList)
       .map(_.flatten)
   }
 
-  def fetchLocalAuthors(): Future[Seq[Author]] = Future {
+  private def fetchAllLocal(): Future[Seq[Author]] = Future {
     val optionalStore = StateStores.waitUntilStoreIsQueryable(
       Config.Author.storeSnapshots,
       QueryableStoreTypes.keyValueStore[String, Author](),
@@ -133,7 +148,7 @@ class AuthorsStateReader(
     }.getOrElse(Seq[Author]())
   }
 
-  private def fetchRemoteAuthors(host: HostStoreInfo): Future[Seq[Author]] = {
+  private def fetchAllRemote(host: HostStoreInfo): Future[Seq[Author]] = {
     val requestPath = s"http://${host.host}:${host.port}/authors?_local=true"
     Http().singleRequest(HttpRequest(uri = requestPath))
       .flatMap { response =>
@@ -141,7 +156,7 @@ class AuthorsStateReader(
       }
   }
 
-  def fetchAuthor(code: String): Future[Option[Author]] = {
+  def fetchOne(code: String): Future[Option[Author]] = {
     println(s"fetchAuthor $code")
     val hostForStore = metadataService.streamsMetadataForStoreAndKey[String](
       Config.Author.storeSnapshots,
@@ -152,12 +167,12 @@ class AuthorsStateReader(
     println(f"Running on ${hostInfo.thisHostInfo}, store is at ${hostForStore.host}:${hostForStore.port}")
     //store is hosted on another process, REST Call
     if (hostInfo.isThisHost(hostForStore))
-      fetchLocalAuthor(code)
+      fetchOneLocal(code)
     else
-      fetchRemoteAuthor(hostForStore, code)
+      fetchOneRemote(hostForStore, code)
   }
 
-  private def fetchRemoteAuthor(host: HostStoreInfo, code: String): Future[Option[Author]] = {
+  private def fetchOneRemote(host: HostStoreInfo, code: String): Future[Option[Author]] = {
     val requestPath = s"http://${host.host}:${host.port}/authors/$code"
     println(s"fetchRemoteAuthor at $requestPath")
     Http().singleRequest(HttpRequest(uri = requestPath))
@@ -171,7 +186,7 @@ class AuthorsStateReader(
       }
   }
 
-  private def fetchLocalAuthor(code: String): Future[Option[Author]] = Future {
+  private def fetchOneLocal(code: String): Future[Option[Author]] = Future {
     println(s"fetchLocalAuthor code=$code")
 
     val store = StateStores.waitUntilStoreIsQueryable(
