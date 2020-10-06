@@ -6,6 +6,7 @@ import books.Config
 import books.authors._
 import com.davideicardi.kaa.kafka.GenericSerde
 import com.davideicardi.kaa.test.TestSchemaRegistry
+import common.{Envelop, MsgId}
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.{TestInputTopic, TestOutputTopic, Topology, TopologyTestDriver}
 import org.scalatest.funspec.AnyFunSpec
@@ -23,19 +24,23 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers {
     schemaRegistry,
     new HostInfo("dummy", 9999)
   )
-  implicit val commandSerde: GenericSerde[AuthorCommand] = new GenericSerde(schemaRegistry)
-  implicit val eventSerde: GenericSerde[AuthorEvent] = new GenericSerde(schemaRegistry)
+  implicit val commandSerde: GenericSerde[Envelop[AuthorCommand]] = new GenericSerde(schemaRegistry)
+  implicit val eventSerde: GenericSerde[Envelop[AuthorEvent]] = new GenericSerde(schemaRegistry)
   implicit val snapshotSerde: GenericSerde[Author] = new GenericSerde(schemaRegistry)
+
+  private def pushCommands(driver: ScalaTopologyTestDriver, commands: Envelop[AuthorCommand]*): Unit = {
+
+  }
 
   describe("authors") {
     describe("when sending various commands") {
       runTopology { driver =>
-        val commandTopic = driver.createInputTopic[String, AuthorCommand](Config.Author.topicCommands)
+        val commandTopic = driver.createInputTopic[String, Envelop[AuthorCommand]](Config.Author.topicCommands)
 
-        val (cmdId1, cmdId2, cmdId3) = (UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
-        commandTopic.pipeInput("spider-man", CreateAuthor(cmdId1, "spider-man", "Peter", "Parker"))
-        commandTopic.pipeInput("superman", CreateAuthor(cmdId2, "superman", "Clark", "Kent"))
-        commandTopic.pipeInput("spider-man", UpdateAuthor(cmdId3, "Miles", "Morales"))
+        val (cmdId1, cmdId2, cmdId3) = (MsgId.random(), MsgId.random(), MsgId.random())
+        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("spider-man", "Peter", "Parker")))
+        commandTopic.pipeInput("superman", Envelop(cmdId2, CreateAuthor("superman", "Clark", "Kent")))
+        commandTopic.pipeInput("spider-man", Envelop(cmdId3, UpdateAuthor("Miles", "Morales")))
 
         it("should generate events") {
           val eventsTopic = driver.createOutputTopic[String, AuthorEvent](Config.Author.topicEvents)

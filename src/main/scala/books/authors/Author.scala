@@ -1,17 +1,15 @@
 package books.authors
 
-import java.util.UUID
-
 object Author {
   def apply(snapshot: Author, event: AuthorEvent): Author = {
     event match {
-      case AuthorCreated(_, code, firstName, lastName) =>
+      case AuthorCreated(code, firstName, lastName) =>
         snapshot.copy(code = code, firstName = firstName, lastName = lastName)
-      case AuthorUpdated(_, firstName, lastName) =>
+      case AuthorUpdated(firstName, lastName) =>
         snapshot.copy(firstName = firstName, lastName = lastName)
-      case AuthorDeleted(_) =>
+      case AuthorDeleted() =>
         snapshot
-      case AuthorError(_, _) =>
+      case AuthorError(_) =>
         snapshot
     }
   }
@@ -22,38 +20,38 @@ object Author {
 /**
  * The author aggregate.
  * @param code - unique code
- * @param firstName
- * @param lastName
+ * @param firstName First Name
+ * @param lastName Last Name
  */
 case class Author(code: String, firstName: String, lastName: String) {
 
-  def create(code: String, firstName: String, lastName: String)(implicit cmdId: UUID): AuthorEvent = {
+  def create(code: String, firstName: String, lastName: String): AuthorEvent = {
     if (this.code != "")
-      AuthorError(cmdId, "Entity already created")
+      AuthorError("Entity already created")
     else if (Option(firstName).getOrElse("") == "")
-      AuthorError(cmdId, "Invalid firstName")
+      AuthorError("Invalid firstName")
     else if (Option(lastName).getOrElse("") == "")
-      AuthorError(cmdId, "Invalid lastName")
+      AuthorError("Invalid lastName")
     else {
-      AuthorCreated(cmdId, code, firstName, lastName)
+      AuthorCreated(code, firstName, lastName)
     }
   }
 
-  def update(firstName: String, lastName: String)(implicit cmdId: UUID): AuthorEvent = {
+  def update(firstName: String, lastName: String): AuthorEvent = {
     if (this.code == "")
-      AuthorError(cmdId, "Entity not created")
+      AuthorError("Entity not created")
     else if (Option(firstName).getOrElse("") == "")
-      AuthorError(cmdId, "Invalid firstName")
+      AuthorError("Invalid firstName")
     else if (Option(lastName).getOrElse("") == "")
-      AuthorError(cmdId, "Invalid lastName")
+      AuthorError("Invalid lastName")
     else
-      AuthorUpdated(cmdId, firstName, lastName)
+      AuthorUpdated(firstName, lastName)
   }
 
-  def delete()(implicit cmdId: UUID): AuthorEvent = {
+  def delete(): AuthorEvent = {
     if (this.code == "")
-      AuthorError(cmdId, "Entity not created")
+      AuthorError("Entity not created")
     else
-      AuthorDeleted(cmdId)
+      AuthorDeleted()
   }
 }
