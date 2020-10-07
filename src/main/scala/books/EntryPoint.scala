@@ -27,11 +27,12 @@ object EntryPoint extends App with EventSourcingApp {
   private def createAuthorRoutes() = {
     val aggregateConfig = Config.Author
     val commandSender = new DefaultCommandSender[AuthorCommand](
+      system,
       schemaRegistry,
       serviceConfig,
       Config.Author
     )
-    implicit val authorJsonFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
+    val authorJsonFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
     val stateReader = new DefaultSnapshotsStateReader[String, Author](
       system,
       metadataService,

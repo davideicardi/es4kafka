@@ -13,10 +13,11 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 class DefaultCommandSender[TCommand >: Null : SchemaFor : Encoder : Decoder](
+                                                                              actorSystem: ActorSystem,
                                                                               schemaRegistry: SchemaRegistry,
                                                                               serviceConfig: ServiceConfig,
                                                                               aggregateConfig: AggregateConfig,
-                                                                            )(implicit actorSystem: ActorSystem) extends CommandSender[TCommand] {
+                                                                            ) extends CommandSender[TCommand] {
   private implicit val commandSerde: GenericSerde[Envelop[TCommand]] = new GenericSerde(schemaRegistry)
 
   private val producerSettings = ProducerSettings(actorSystem, String.serializer(), commandSerde.serializer())
