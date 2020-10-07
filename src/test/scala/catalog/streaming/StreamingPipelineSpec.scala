@@ -1,7 +1,7 @@
-package books.streaming
+package catalog.streaming
 
-import books.{Config, StreamingPipeline}
-import books.authors._
+import catalog.{Config, StreamingPipeline}
+import catalog.authors._
 import com.davideicardi.kaa.kafka.GenericSerde
 import com.davideicardi.kaa.test.TestSchemaRegistry
 import common._

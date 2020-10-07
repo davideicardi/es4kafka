@@ -2,7 +2,7 @@ package common.streaming
 
 import java.util.Properties
 
-import books.Config
+import catalog.Config
 import common.ServiceConfig
 import org.apache.kafka.streams.{StreamsConfig, Topology}
 

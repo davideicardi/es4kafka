@@ -1,7 +1,7 @@
-package books.authors.streaming
+package catalog.authors.streaming
 
-import books.Config
-import books.authors._
+import catalog.Config
+import catalog.authors._
 import com.davideicardi.kaa.SchemaRegistry
 import com.davideicardi.kaa.kafka.GenericSerde
 import common.Envelop

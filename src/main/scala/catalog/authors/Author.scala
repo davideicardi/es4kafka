@@ -1,4 +1,4 @@
-package books.authors
+package catalog.authors
 
 object Author {
   def apply(snapshot: Author, event: AuthorEvent): Author = {

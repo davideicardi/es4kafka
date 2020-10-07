@@ -1,13 +1,13 @@
-package books
+package catalog
 
 import common.{AggregateConfig, ServiceConfig}
 
 object Config extends ServiceConfig {
   // (micro)service name
-  val applicationId: String = "books"
+  val applicationId: String = "catalog"
 
   object Author extends AggregateConfig {
     val aggregateName: String = "authors"
-    val serviceName: String = "books"
+    val serviceName: String = applicationId
   }
 }

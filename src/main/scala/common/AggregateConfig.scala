@@ -4,13 +4,13 @@ trait AggregateConfig {
   val aggregateName: String
   val serviceName: String
 
-  // Kafka Topic name convention: {service}.{kind}[.{name}]
-  lazy val topicCommands: String = s"$serviceName.commands.$aggregateName"
-  lazy val topicEvents: String = s"$serviceName.events.$aggregateName"
-  lazy val topicSnapshots: String = s"$serviceName.snapshots.$aggregateName"
+  // Kafka Topic name convention: {service}.{name}.{kind}
+  lazy val topicCommands: String = s"$serviceName.$aggregateName.commands"
+  lazy val topicEvents: String = s"$serviceName.$aggregateName.events"
+  lazy val topicSnapshots: String = s"$serviceName.$aggregateName.snapshots"
 
-  // Kafka Streams store convention: {kind}.{name} (store already have a prefix the app id)
-  lazy val storeSnapshots: String = s"store.snapshots.$aggregateName"
+  // Kafka Streams store convention: {name}.store.{kind} (store already have a prefix the app id)
+  lazy val storeSnapshots: String = s"$aggregateName.store.snapshots"
 
   // HTTP RPC segments
   lazy val httpPrefix: String = aggregateName

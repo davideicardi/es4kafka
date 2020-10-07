@@ -1,6 +1,6 @@
-package books
+package catalog
 
-import books.authors.streaming.AuthorsTopology
+import catalog.authors.streaming.AuthorsTopology
 import com.davideicardi.kaa.SchemaRegistry
 import common.ServiceConfig
 import common.streaming.StreamingPipelineBase

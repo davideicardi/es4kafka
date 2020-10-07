@@ -1,8 +1,8 @@
-package books
+package catalog
 
 import akka.actor.ActorSystem
-import books.authors.http.AuthorsRoutes
-import books.authors.{Author, AuthorCommand}
+import catalog.authors.http.AuthorsRoutes
+import catalog.authors.{Author, AuthorCommand}
 import com.davideicardi.kaa.KaaSchemaRegistry
 import common._
 import common.http.{MetadataRoutes, RouteController}

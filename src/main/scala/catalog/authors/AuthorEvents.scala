@@ -1,4 +1,4 @@
-package books.authors
+package catalog.authors
 
 sealed trait AuthorEvent {
   val ignore: Boolean = false

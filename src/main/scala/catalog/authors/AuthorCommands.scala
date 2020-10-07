@@ -1,4 +1,4 @@
-package books.authors
+package catalog.authors
 
 sealed trait AuthorCommand
 case class CreateAuthor(code: String, firstName: String, lastName: String) extends AuthorCommand

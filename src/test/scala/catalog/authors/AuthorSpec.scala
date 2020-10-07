@@ -1,4 +1,4 @@
-package books.authors
+package catalog.authors
 
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
