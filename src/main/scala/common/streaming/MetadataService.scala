@@ -1,11 +1,11 @@
-package common
+package common.streaming
 
-import org.apache.kafka.streams.{KafkaStreams, KeyQueryMetadata}
-import org.apache.kafka.streams.state.StreamsMetadata
 import java.util.stream.Collectors
 
 import org.apache.kafka.common.serialization.Serializer
 import org.apache.kafka.connect.errors.NotFoundException
+import org.apache.kafka.streams.state.StreamsMetadata
+import org.apache.kafka.streams.{KafkaStreams, KeyQueryMetadata}
 
 import scala.jdk.CollectionConverters._
 

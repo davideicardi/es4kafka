@@ -1,10 +1,11 @@
 package books.streaming
 
-import books.Config
+import books.{Config, StreamingPipeline}
 import books.authors._
 import com.davideicardi.kaa.kafka.GenericSerde
 import com.davideicardi.kaa.test.TestSchemaRegistry
 import common._
+import common.streaming.StreamingPipelineBase
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.scala.Serdes._
 

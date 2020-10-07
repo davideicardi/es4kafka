@@ -5,7 +5,8 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import books.authors._
 import common._
-import common.http.RouteController
+import common.http.{RouteController, RpcActions}
+import common.streaming.SnapshotStateReader
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -30,7 +31,7 @@ class AuthorsRoutes(
     concat(
       post {
         concat(
-          path(aggregateConfig.httpCreate) {
+          path(aggregateConfig.httpPrefix / RpcActions.create) {
             entity(as[CreateAuthor]) { model =>
               val command = CreateAuthor(model.code, model.firstName, model.lastName)
               complete {
@@ -38,7 +39,7 @@ class AuthorsRoutes(
               }
             }
           },
-          path(aggregateConfig.httpUpdate / Segment) { code =>
+          path(aggregateConfig.httpPrefix / RpcActions.update / Segment) { code =>
             entity(as[UpdateAuthor]) { model =>
               val command = UpdateAuthor(model.firstName, model.lastName)
               complete {
@@ -46,7 +47,7 @@ class AuthorsRoutes(
               }
             }
           },
-          path(aggregateConfig.httpDelete / Segment) { code =>
+          path(aggregateConfig.httpPrefix / RpcActions.delete / Segment) { code =>
             val command = DeleteAuthor()
             complete {
               commandSender.send(code, command)
@@ -56,15 +57,15 @@ class AuthorsRoutes(
       },
       get {
         concat(
-          path(aggregateConfig.httpAll) {
-            parameter(aggregateConfig.httpLocalParam.as[Boolean].optional) { localOnly =>
+          path(aggregateConfig.httpPrefix / RpcActions.all) {
+            parameter(RpcActions.localParam.as[Boolean].optional) { localOnly =>
               complete {
                 authorStateReader.fetchAll(localOnly.getOrElse(false))
               }
             }
           },
-          path(aggregateConfig.httpOne / Segment) { code =>
-            rejectEmptyResponse {
+          rejectEmptyResponse {
+            path(aggregateConfig.httpPrefix / RpcActions.one / Segment) { code =>
               complete {
                 authorStateReader.fetchOne(code)
               }

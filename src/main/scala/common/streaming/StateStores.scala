@@ -1,10 +1,10 @@
-package common
+package common.streaming
 
 import com.davideicardi.kaa.utils.{Retry, RetryConfig}
-import org.apache.kafka.streams.{KafkaStreams, StoreQueryParameters}
 import org.apache.kafka.streams.state.QueryableStoreType
+import org.apache.kafka.streams.{KafkaStreams, StoreQueryParameters}
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 import scala.util.Try
 
 object StateStores {
@@ -15,6 +15,7 @@ object StateStores {
     streams: KafkaStreams
   ): Option[T] = {
 
+    // TODO use a retry non blocking (with a Future)
     Retry.retryIfNone(RetryConfig(5, 500.milliseconds)) {
       Try {
         streams.store(StoreQueryParameters.fromNameAndType(storeName, queryableStoreType))

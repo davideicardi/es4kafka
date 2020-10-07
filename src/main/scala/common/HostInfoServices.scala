@@ -1,5 +1,6 @@
 package common
 
+import common.streaming.HostStoreInfo
 import org.apache.kafka.streams.state.HostInfo
 
 class HostInfoServices(val thisHostInfo: HostInfo) {

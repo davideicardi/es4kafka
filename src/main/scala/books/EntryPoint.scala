@@ -3,10 +3,10 @@ package books
 import akka.actor.ActorSystem
 import books.authors.http.AuthorsRoutes
 import books.authors.{Author, AuthorCommand}
-import books.streaming.StreamingPipeline
 import com.davideicardi.kaa.KaaSchemaRegistry
 import common._
 import common.http.{MetadataRoutes, RouteController}
+import common.streaming.{DefaultSnapshotsStateReader, MetadataService}
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.KafkaStreams
 import spray.json.DefaultJsonProtocol.{jsonFormat3, _}

@@ -2,43 +2,28 @@ package common.http
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directive0
 import akka.http.scaladsl.server.Directives._
-import common.MetadataService
-import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.state.HostInfo
 
 import scala.concurrent._
 
 class AkkaHttpServer(
-                    streams: KafkaStreams,
                     hostInfo: HostInfo,
                     controllers: Seq[RouteController],
                   )
                 (implicit system: ActorSystem, executionContext: ExecutionContext){
-  val metadataService = new MetadataService(streams)
-  var bindingFuture: Option[Future[Http.ServerBinding]] = None
+  private var bindingFuture: Option[Future[Http.ServerBinding]] = None
 
-  // TODO handle state in a better way
-  var isStateStoredReady: Boolean = false
-  def setReady(isReady: Boolean): Unit = {
-    isStateStoredReady = isReady
-  }
-
-  private def checkStreamsState: Directive0 = {
-    if (!isStateStoredReady) {
-      complete(StatusCodes.InternalServerError, "state stored not queryable, possible due to re-balancing")
-    } else {
-      pass
-    }
-  }
+//  // TODO why this directive doesn't work? It is called only once...
+//  private def checkStreamsState: Directive0 = Directive {
+//    inner => if (streams.state() == State.RUNNING)
+//      inner(())
+//    else
+//      reject(ValidationRejection("State not queryable, possible due to re-balancing"))
+//  }
 
   def start(): Unit = {
-
-    val route = checkStreamsState {
-      concat(controllers.map(_.createRoute()):_*)
-    }
+    val route = concat(controllers.map(_.createRoute()):_*)
 
     bindingFuture = Some {
       Http().newServerAt(hostInfo.host(), hostInfo.port())

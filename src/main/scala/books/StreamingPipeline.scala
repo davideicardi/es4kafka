@@ -1,10 +1,11 @@
-package books.streaming
+package books
 
-import books.authors.AuthorStreamingPipeline
+import books.authors.streaming.AuthorsTopology
 import com.davideicardi.kaa.SchemaRegistry
-import common.{ServiceConfig, StreamingPipelineBase}
-import org.apache.kafka.streams.scala._
+import common.ServiceConfig
+import common.streaming.StreamingPipelineBase
 import org.apache.kafka.streams.Topology
+import org.apache.kafka.streams.scala._
 
 class StreamingPipeline(
                          val serviceConfig: ServiceConfig,
@@ -14,7 +15,7 @@ class StreamingPipeline(
   def createTopology(): Topology = {
     val streamBuilder = new StreamsBuilder
 
-    AuthorStreamingPipeline
+    AuthorsTopology
       .defineTopology(streamBuilder, schemaRegistry)
 
     streamBuilder.build()

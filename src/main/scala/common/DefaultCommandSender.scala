@@ -22,7 +22,7 @@ class DefaultCommandSender[TCommand >: Null : SchemaFor : Encoder : Decoder](
 
   private val producerSettings = ProducerSettings(actorSystem, String.serializer(), commandSerde.serializer())
     .withBootstrapServers(serviceConfig.kafka_brokers)
-  private val producer = SendProducer(producerSettings)
+  private val producer = SendProducer(producerSettings)(actorSystem)
 
   def send(key: String, command: TCommand)(implicit executionContext: ExecutionContext): Future[MsgId] = {
     val msgId = MsgId.random()
@@ -30,6 +30,11 @@ class DefaultCommandSender[TCommand >: Null : SchemaFor : Encoder : Decoder](
     producer
       .send(new ProducerRecord(aggregateConfig.topicCommands, key, envelop))
       .map(_ => msgId)
+
+    // TODO Here or in a specific function I need to wait that the command is completed
+    // the idea can be to repartition the results of the command by MsgId -> Result
+    // and storing it to a local store.
+    // Then polling an API until there is a result fot this MsgId.
   }
 
   def close(): Unit = {

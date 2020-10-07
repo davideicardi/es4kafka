@@ -22,7 +22,6 @@ trait EventSourcingApp {
     println(s"HTTP RPC endpoints at http://${serviceConfig.rest_endpoint.host}:${serviceConfig.rest_endpoint.port}")
 
     val restService = new AkkaHttpServer(
-      streams,
       serviceConfig.rest_endpoint,
       controllers)
 
@@ -33,13 +32,8 @@ trait EventSourcingApp {
 
     })
 
-    streams.setStateListener((newState, oldState) => {
-      println(f"KafkaStream state is $newState")
-      if (newState == KafkaStreams.State.RUNNING && oldState == KafkaStreams.State.REBALANCING) {
-        restService.setReady(true)
-      } else if (newState != KafkaStreams.State.RUNNING) {
-        restService.setReady(false)
-      }
+    streams.setStateListener((newState, _) => {
+      println(s"KafkaStream state is $newState")
     })
 
     restService.start()
@@ -50,7 +44,6 @@ trait EventSourcingApp {
       shutDown(streams, restService)
     }))
 
-    // TODO
     // Always (and unconditionally) clean local state prior to starting the processing topology.
     // We opt for this unconditional call here because this will make it easier for you to
     // play around with the example when resetting the application for doing a re-run
@@ -64,8 +57,8 @@ trait EventSourcingApp {
     // here but rather only when it is truly needed, i.e., only under certain conditions
     // (e.g., the presence of a command line flag for your app).
     // See `ApplicationResetExample.java` for a production-like example.
-    println("Cleanup KafkaStream...")
-    streams.cleanUp()
+//    println("Cleanup KafkaStream...")
+//    streams.cleanUp()
 
     println("Starting KafkaStream...")
     streams.start()
