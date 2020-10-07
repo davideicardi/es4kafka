@@ -2,6 +2,7 @@ package books.authors.http
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import books.Config
 import books.authors._
 import common._
 import org.scalamock.scalatest.MockFactory
@@ -19,7 +20,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
                          commandSender: CommandSender[AuthorCommand] = mock[CommandSender[AuthorCommand]],
                          stateReader: SnapshotStateReader[String, Author] = mock[SnapshotStateReader[String, Author]],
                          ) = {
-    new AuthorsRoutes(commandSender, stateReader)
+    new AuthorsRoutes(commandSender, stateReader, Config.Author)
       .createRoute()
   }
 
@@ -30,7 +31,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
       val stateReader = mock[SnapshotStateReader[String, Author]]
       (stateReader.fetchAll(_: Boolean)).expects(false).returning(Future(expectedAuthors)).once()
 
-      Get("/authors") ~> targetRoute(stateReader = stateReader) ~> check {
+      Get("/authors/all") ~> targetRoute(stateReader = stateReader) ~> check {
         responseAs[Seq[Author]] shouldEqual expectedAuthors
       }
     }
@@ -40,7 +41,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
       val stateReader = mock[SnapshotStateReader[String, Author]]
       (stateReader.fetchOne(_: String)).expects("code1").returning(Future(Some(expectedAuthor))).once()
 
-      Get("/authors/code1") ~> targetRoute(stateReader = stateReader) ~> check {
+      Get("/authors/one/code1") ~> targetRoute(stateReader = stateReader) ~> check {
         responseAs[Author] shouldEqual expectedAuthor
       }
     }
@@ -51,7 +52,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
       mockCmdSend(cmdSender, msgId)
 
       val body = CreateAuthor("code1", "name1", "last1")
-      Post("/authors", body) ~> targetRoute(commandSender = cmdSender) ~> check {
+      Post("/authors/create", body) ~> targetRoute(commandSender = cmdSender) ~> check {
         responseAs[MsgId] should be(msgId)
       }
     }
@@ -62,7 +63,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
       mockCmdSend(cmdSender, msgId)
 
       val body = UpdateAuthor("name1", "last1")
-      Put("/authors/code1", body) ~> targetRoute(commandSender = cmdSender) ~> check {
+      Post("/authors/update/code1", body) ~> targetRoute(commandSender = cmdSender) ~> check {
         responseAs[MsgId] should be(msgId)
       }
     }
@@ -72,7 +73,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
       val msgId = MsgId.random()
       mockCmdSend(cmdSender, msgId)
 
-      Delete("/authors/code1") ~> targetRoute(commandSender = cmdSender) ~> check {
+      Post("/authors/delete/code1") ~> targetRoute(commandSender = cmdSender) ~> check {
         responseAs[MsgId] should be(msgId)
       }
     }

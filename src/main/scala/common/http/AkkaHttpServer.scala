@@ -1,21 +1,20 @@
-package books.http
+package common.http
 
-import org.apache.kafka.streams.KafkaStreams
-import org.apache.kafka.streams.state.HostInfo
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directive0
 import akka.http.scaladsl.server.Directives._
+import common.MetadataService
+import org.apache.kafka.streams.KafkaStreams
+import org.apache.kafka.streams.state.HostInfo
 
 import scala.concurrent._
-import common.{HostInfoServices, MetadataService}
-import books.authors.http._
-import com.davideicardi.kaa.SchemaRegistry
-import common.http.MetadataRoutes
 
-class HttpServer(
+class AkkaHttpServer(
                     streams: KafkaStreams,
                     hostInfo: HostInfo,
-                    schemaRegistry: SchemaRegistry
+                    controllers: Seq[RouteController],
                   )
                 (implicit system: ActorSystem, executionContext: ExecutionContext){
   val metadataService = new MetadataService(streams)
@@ -27,23 +26,19 @@ class HttpServer(
     isStateStoredReady = isReady
   }
 
-  // TODO On every routes we must check that state is ready:
-  //  if (!isStateStoredReady) {
-  //    complete(HttpResponse(StatusCodes.InternalServerError, entity = "state stored not queryable, possible due to re-balancing"))
-  //  }
-  // We can add a middleware?
-
+  private def checkStreamsState: Directive0 = {
+    if (!isStateStoredReady) {
+      complete(StatusCodes.InternalServerError, "state stored not queryable, possible due to re-balancing")
+    } else {
+      pass
+    }
+  }
 
   def start(): Unit = {
 
-    val metadataRoutes = new MetadataRoutes(metadataService)
-    // TODO Stop the command sender
-    val authorsRoutes = new AuthorsRoutes(
-      new AuthorsCommandSender(schemaRegistry),
-      new AuthorsStateReader(metadataService, streams, new HostInfoServices(hostInfo))
-    )
-
-    val route = metadataRoutes.createRoute() ~ authorsRoutes.createRoute()
+    val route = checkStreamsState {
+      concat(controllers.map(_.createRoute()):_*)
+    }
 
     bindingFuture = Some {
       Http().newServerAt(hostInfo.host(), hostInfo.port())

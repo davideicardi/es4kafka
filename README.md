@@ -69,9 +69,10 @@ Why Event Sourcing?
 - Adding projections easily
 - Schema evolution can be a little easier (but always a pain!)
 - Dedicated storage can be added if needed for a specific projection (Elasticsearch, MongoDb, Cassandra, ...)
+- Easy auditing/replay of events
 
 Why JVM?
-- The only official implementation of Kafka Streams is only available for Java
+- The official implementation of Kafka Streams is available only for Java
 
 Why Scala?
 - It supports Java but with a functional approach and less verbose
@@ -85,7 +86,7 @@ Why Kafka Streams?
 - Event driven architecture are very hard to implement, Kafka Streams makes it a little less harder
 - "Easy" [exactly-once](https://www.confluent.io/blog/enabling-exactly-once-kafka-streams/) semantic with Kafka
 - Advanced stream processing capabilities (join, aggregates, ...)
-- CONTRO:
+- disadvantages:
     - quite hard to find good examples
     - reset state can be difficult
 
@@ -105,8 +106,9 @@ Why Kaa Schema Registry?
 
 Requirements:
 - scala sbt
-- JVM 8 or 11
+- OpenJDK 11 (64 bit)
 - Docker (for integrations tests)
+    - Docker-compose
 
 Run unit tests:
 
@@ -120,17 +122,17 @@ Run the app:
 sbt run
 ```
 
-REST API are available at: http://localhost:9081/
+HTTP RPC style API are available at: http://localhost:9081/
 
-- `GET /authors` - gel all authors
-- `POST /authors` - create an author
+- `GET /authors/all` - gel all authors
+- `GET /authors/one/{code}` - gel one author
+- `POST /authors/create` - create an author
     - body: `CreateAuthorModel` as json
-- `PUT /authors/{code}` - update an author
-- `DELETE /authors/{code}` - delete an author
+- `POST /authors/update/{code}` - update an author
+- `POST /authors/delete/{code}` - delete an author
 
 ## TODO
 
-- unit test rest api
 - create topics at startup with correct properties (compact, retention, ...) 
 - extract common code
 - review TODO/println
@@ -141,5 +143,9 @@ REST API are available at: http://localhost:9081/
 
 Inspired by:
 
-- Event Sourcing with Kafka Stream: https://github.com/amitayh/event-sourcing-kafka-streams
-- Kafka Streams Interactive Queries with Akka Http: https://sachabarbs.wordpress.com/2019/05/08/kafkastreams-interactive-queries/
+- Event Sourcing with Kafka Stream:
+    - https://github.com/amitayh/event-sourcing-kafka-streams
+    - https://speakerdeck.com/amitayh/building-event-sourced-systems-with-kafka-streams
+- Kafka Streams Interactive Queries with Akka Http:
+    - https://sachabarbs.wordpress.com/2019/05/08/kafkastreams-interactive-queries/
+

@@ -12,10 +12,11 @@ trait AggregateConfig {
   // Kafka Streams store convention: {kind}.{name} (store already have a prefix the app id)
   lazy val storeSnapshots: String = f"store.snapshots.$aggregateName"
 
-  // rest segments
-  lazy val httpSegmentCreate: String = f"$aggregateName/create"
-  lazy val httpSegmentUpdate: String = f"$aggregateName/update"
-  lazy val httpSegmentDelete: String = f"$aggregateName/delete"
-  lazy val httpSegmentOne: String = f"$aggregateName/one"
-  lazy val httpSegmentAll: String = f"$aggregateName/all"
+  // http RPC segments
+  lazy val httpCreate: String = f"$aggregateName/create"
+  lazy val httpUpdate: String = f"$aggregateName/update"
+  lazy val httpDelete: String = f"$aggregateName/delete"
+  lazy val httpOne: String = f"$aggregateName/one"
+  lazy val httpAll: String = f"$aggregateName/all"
+  lazy val httpLocalParam: String = "_local"
 }
