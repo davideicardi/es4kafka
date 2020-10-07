@@ -38,6 +38,7 @@ object AuthorsTopology {
 
     // snapshots table
     val snapshotTable = eventsStream
+      .filterNot((_, event) => event.message.ignore)
       .groupByKey
       .aggregate(Author.draft)(
         (_, event, snapshot) => Author(snapshot, event.message)

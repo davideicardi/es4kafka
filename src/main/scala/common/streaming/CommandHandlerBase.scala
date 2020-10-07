@@ -35,18 +35,16 @@ abstract class CommandHandlerBase[TKey, TCommand, TEvent, TSnapshot](
     val msgId = value.msgId
     val command = value.message
     val snapshot = loadSnapshot(key)
-    val event = execCommand(snapshot, command)
+    val event = execCommand(key, snapshot, command)
 
     Envelop(msgId, event)
   }
 
   override def close(): Unit = ()
 
-  protected def execCommand(snapshot: TSnapshot, command: TCommand): TEvent
+  protected def execCommand(key: TKey, snapshot: TSnapshot, command: TCommand): TEvent
 
   protected def snapshotDraft: TSnapshot
-
-  protected def keyFromSnapshot(snapshot: TSnapshot): TKey
 
   protected def getSnapshot(key: TKey): Option[TSnapshot] =
     Option(storeSnapshots.get(key))
@@ -55,15 +53,15 @@ abstract class CommandHandlerBase[TKey, TCommand, TEvent, TSnapshot](
     getSnapshot(key)
       .getOrElse(snapshotDraft)
 
-  protected def updateSnapshot(snapshot: TSnapshot): Unit = {
-    storeSnapshots.put(keyFromSnapshot(snapshot), snapshot)
+  protected def updateSnapshot(key: TKey, snapshot: TSnapshot): Unit = {
+    storeSnapshots.put(key, snapshot)
   }
 
   protected def deleteSnapshot(key: TKey): Unit = {
     val _ = storeSnapshots.delete(key)
   }
 
-  protected def addSnapshotIfAbsent(snapshot: TSnapshot): Boolean = {
-    Option(storeSnapshots.putIfAbsent(keyFromSnapshot(snapshot), snapshot)).isEmpty
+  protected def addSnapshotIfAbsent(key: TKey, snapshot: TSnapshot): Boolean = {
+    Option(storeSnapshots.putIfAbsent(key, snapshot)).isEmpty
   }
 }

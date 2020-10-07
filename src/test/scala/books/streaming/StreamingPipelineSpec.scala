@@ -70,6 +70,26 @@ class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorComm
       }
     }
 
+    describe("when adding an author with a code different than the key") {
+      runTopology { driver =>
+        val commandTopic = createCmdTopic(driver)
+
+        val cmdId1 = MsgId.random()
+        commandTopic.pipeInput("not-matching", Envelop(cmdId1, CreateAuthor("spider-man", "Peter", "Parker")))
+
+        it("should generate an error event") {
+          val events = getOutputEvents(driver)
+          events should have size 1
+          events should contain ("not-matching" -> Envelop(cmdId1, AuthorError("Key doesn't match")))
+        }
+
+        it("should not generate snapshots") {
+          val snapshots = getOutputSnapshots(driver)
+          snapshots should have size 0
+        }
+      }
+    }
+
     describe("when add an author, delete it and add it again") {
       runTopology { driver =>
         val commandTopic = createCmdTopic(driver)
@@ -87,7 +107,7 @@ class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorComm
           events should contain ("spider-man" -> Envelop(cmdId3, AuthorCreated("spider-man", "Miles", "Morales")))
         }
 
-        it("generate snapshots only for the last one") {
+        it("should generate snapshots only for the last one") {
           val snapshots = getOutputSnapshots(driver)
           snapshots should have size 1
           snapshots should contain ("spider-man" -> Author("spider-man", "Miles", "Morales"))

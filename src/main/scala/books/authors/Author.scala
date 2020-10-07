@@ -24,9 +24,10 @@ object Author {
  * @param lastName Last Name
  */
 case class Author(code: String, firstName: String, lastName: String) {
+  def isDraft: Boolean = this.code == ""
 
   def create(code: String, firstName: String, lastName: String): AuthorEvent = {
-    if (this.code != "")
+    if (!isDraft)
       AuthorError("Entity already created")
     else if (Option(firstName).getOrElse("") == "")
       AuthorError("Invalid firstName")
@@ -38,7 +39,7 @@ case class Author(code: String, firstName: String, lastName: String) {
   }
 
   def update(firstName: String, lastName: String): AuthorEvent = {
-    if (this.code == "")
+    if (isDraft)
       AuthorError("Entity not created")
     else if (Option(firstName).getOrElse("") == "")
       AuthorError("Invalid firstName")
@@ -49,7 +50,7 @@ case class Author(code: String, firstName: String, lastName: String) {
   }
 
   def delete(): AuthorEvent = {
-    if (this.code == "")
+    if (isDraft)
       AuthorError("Entity not created")
     else
       AuthorDeleted()
