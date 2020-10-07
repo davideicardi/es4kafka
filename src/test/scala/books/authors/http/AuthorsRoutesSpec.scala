@@ -3,7 +3,7 @@ package books.authors.http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import books.authors._
-import common.{CommandSender, MsgId, SnapshotStateReader}
+import common._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
@@ -13,6 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest with MockFactory {
   import AuthorsRoutesJsonFormats._
+  import EnvelopJsonFormats._
 
   private def targetRoute(
                          commandSender: CommandSender[AuthorCommand] = mock[CommandSender[AuthorCommand]],
@@ -51,7 +52,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
 
       val body = CreateAuthor("code1", "name1", "last1")
       Post("/authors", body) ~> targetRoute(commandSender = cmdSender) ~> check {
-        responseAs[String] should be(msgId)
+        responseAs[MsgId] should be(msgId)
       }
     }
 
@@ -62,7 +63,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
 
       val body = UpdateAuthor("name1", "last1")
       Put("/authors/code1", body) ~> targetRoute(commandSender = cmdSender) ~> check {
-        responseAs[String] should be(msgId)
+        responseAs[MsgId] should be(msgId)
       }
     }
 
@@ -72,7 +73,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
       mockCmdSend(cmdSender, msgId)
 
       Delete("/authors/code1") ~> targetRoute(commandSender = cmdSender) ~> check {
-        responseAs[String] should be(msgId)
+        responseAs[MsgId] should be(msgId)
       }
     }
   }
@@ -82,7 +83,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
                            returningMsgId: MsgId,
                            expectedKey: String = "code1"
                          ): Unit = {
-    (cmdSender.send(_: String, _: AuthorCommand)(_: ExecutionContext))
+    val _ = (cmdSender.send(_: String, _: AuthorCommand)(_: ExecutionContext))
       .expects(expectedKey, *, *)
       .returning(Future(returningMsgId)).once()
   }

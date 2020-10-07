@@ -14,7 +14,6 @@ import books.authors._
 import com.davideicardi.kaa.SchemaRegistry
 import com.davideicardi.kaa.kafka.GenericSerde
 import common._
-import common.JsonFormats._
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.scala.Serdes._
@@ -31,7 +30,6 @@ object AuthorsRoutesJsonFormats {
   implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
   implicit val CreateAuthorFormat: RootJsonFormat[CreateAuthor] = jsonFormat3(CreateAuthor)
   implicit val UpdateAuthorFormat: RootJsonFormat[UpdateAuthor] = jsonFormat2(UpdateAuthor)
-  implicit val MsgIdFormat: RootJsonFormat[MsgId] = jsonFormat1(MsgId.apply)
 }
 
 class AuthorsRoutes(
@@ -39,6 +37,7 @@ class AuthorsRoutes(
                      authorStateReader: SnapshotStateReader[String, Author],
                    ) {
   import AuthorsRoutesJsonFormats._
+  import EnvelopJsonFormats._
 
   def createRoute()(implicit executionContext: ExecutionContext): Route =
     concat(
@@ -99,7 +98,7 @@ class AuthorsCommandSender(
 
   private val config = actorSystem.settings.config.getConfig("akka.kafka.producer")
   private val producerSettings = ProducerSettings(config, String.serializer(), commandSerde.serializer())
-    .withBootstrapServers(Config.Kafka.kafka_brokers)
+    .withBootstrapServers(Config.kafka_brokers)
   private val producer = SendProducer(producerSettings)
 
   def send(key: String, command: AuthorCommand)(implicit executionContext: ExecutionContext): Future[MsgId] = {

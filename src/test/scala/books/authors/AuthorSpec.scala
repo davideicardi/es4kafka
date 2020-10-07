@@ -1,7 +1,5 @@
 package books.authors
 
-import java.util.UUID
-
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 
