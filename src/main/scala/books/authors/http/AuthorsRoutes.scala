@@ -1,8 +1,5 @@
 package books.authors.http
 
-import java.util.UUID
-
-import akka.Done
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -21,54 +18,54 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.scala.Serdes._
 import org.apache.kafka.streams.state.QueryableStoreTypes
-import spray.json.DefaultJsonProtocol._
 import spray.json._
+import spray.json.DefaultJsonProtocol._
 
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
-object AuthorsRoutes {
+object AuthorsRoutesJsonFormats {
+  // json serializers
   implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
-  implicit val CreateAuthorFormat: RootJsonFormat[CreateAuthorModel] = jsonFormat3(CreateAuthorModel)
-  implicit val UpdateAuthorFormat: RootJsonFormat[UpdateAuthorModel] = jsonFormat2(UpdateAuthorModel)
+  implicit val CreateAuthorFormat: RootJsonFormat[CreateAuthor] = jsonFormat3(CreateAuthor)
+  implicit val UpdateAuthorFormat: RootJsonFormat[UpdateAuthor] = jsonFormat2(UpdateAuthor)
 }
 
 class AuthorsRoutes(
                      commandSender: CommandSender[AuthorCommand],
                      authorStateReader: SnapshotStateReader[String, Author],
                    ) {
-  import AuthorsRoutes._
+  import AuthorsRoutesJsonFormats._
+  import EnvelopJsonFormats._
+
   def createRoute()(implicit executionContext: ExecutionContext): Route =
     concat(
       post {
         path("authors") {
-          entity(as[CreateAuthorModel]) { model =>
-            val command = CreateAuthor(UUID.randomUUID(), model.code, model.firstName, model.lastName)
+          entity(as[CreateAuthor]) { model =>
+            val command = CreateAuthor(model.code, model.firstName, model.lastName)
             complete {
               commandSender.send(command.code, command)
-                .map(_ => command.cmdId.toString)
             }
           }
         }
       },
       put {
         path("authors" / Segment) { code =>
-          entity(as[UpdateAuthorModel]) { model =>
-            val command = UpdateAuthor(UUID.randomUUID(), model.firstName, model.lastName)
+          entity(as[UpdateAuthor]) { model =>
+            val command = UpdateAuthor(model.firstName, model.lastName)
             complete {
               commandSender.send(code, command)
-                .map(_ => command.cmdId.toString)
             }
           }
         }
       },
       delete {
         path("authors" / Segment) { code =>
-          val command = DeleteAuthor(UUID.randomUUID())
+          val command = DeleteAuthor()
           complete {
             commandSender.send(code, command)
-              .map(_ => command.cmdId.toString)
           }
         }
       },
@@ -97,17 +94,19 @@ class AuthorsRoutes(
 class AuthorsCommandSender(
                             schemaRegistry: SchemaRegistry
                           )(implicit actorSystem: ActorSystem) extends CommandSender[AuthorCommand] {
-  private implicit val commandSerde: GenericSerde[AuthorCommand] = new GenericSerde(schemaRegistry)
+  private implicit val commandSerde: GenericSerde[Envelop[AuthorCommand]] = new GenericSerde(schemaRegistry)
 
   private val config = actorSystem.settings.config.getConfig("akka.kafka.producer")
   private val producerSettings = ProducerSettings(config, String.serializer(), commandSerde.serializer())
-    .withBootstrapServers(Config.Kafka.kafka_brokers)
+    .withBootstrapServers(Config.kafka_brokers)
   private val producer = SendProducer(producerSettings)
 
-  def send(key: String, command: AuthorCommand)(implicit executionContext: ExecutionContext): Future[Done] = {
+  def send(key: String, command: AuthorCommand)(implicit executionContext: ExecutionContext): Future[MsgId] = {
+    val msgId = MsgId.random()
+    val envelop = Envelop(msgId, command)
     producer
-      .send(new ProducerRecord(Config.Author.topicCommands, key, command))
-      .map(_ => Done)
+      .send(new ProducerRecord(Config.Author.topicCommands, key, envelop))
+      .map(_ => msgId)
   }
 
   def close(): Unit = {

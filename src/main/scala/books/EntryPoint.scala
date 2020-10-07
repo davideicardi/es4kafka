@@ -17,21 +17,18 @@ object EntryPoint extends App {
   run()
 
   private def run(): Unit = {
-    System.out.println(s"Connecting to Kafka cluster via bootstrap servers ${Config.Kafka.kafka_brokers}")
-    System.out.println(s"REST endpoint at http://${Config.Rest.listen_endpoint.host}:${Config.Rest.listen_endpoint.port}")
+    System.out.println(s"Connecting to Kafka cluster via bootstrap servers ${Config.kafka_brokers}")
+    System.out.println(s"REST endpoint at http://${Config.rest_endpoint.host}:${Config.rest_endpoint.port}")
 
     implicit val system: ActorSystem = ActorSystem(Config.applicationId)
 
-    val schemaRegistry = new KaaSchemaRegistry(Config.Kafka.kafka_brokers)
-    val streamingPipeline = new StreamingPipeline(
-      Config.Kafka.kafka_brokers,
-      schemaRegistry,
-      Config.Rest.listen_endpoint)
+    val schemaRegistry = new KaaSchemaRegistry(Config.kafka_brokers)
+    val streamingPipeline = new StreamingPipeline(Config, schemaRegistry)
     val streams: KafkaStreams = new KafkaStreams(
       streamingPipeline.createTopology(),
       streamingPipeline.properties)
 
-    val restService =  new HttpServer(streams, Config.Rest.listen_endpoint, schemaRegistry)
+    val restService =  new HttpServer(streams, Config.rest_endpoint, schemaRegistry)
 
     // Can only add this in State == CREATED
     streams.setUncaughtExceptionHandler(( _ :Thread, throwable : Throwable) => {

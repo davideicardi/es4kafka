@@ -1,143 +1,100 @@
 package books.streaming
 
-import java.util.{Properties, UUID}
-
 import books.Config
 import books.authors._
 import com.davideicardi.kaa.kafka.GenericSerde
 import com.davideicardi.kaa.test.TestSchemaRegistry
+import common._
 import org.apache.kafka.common.serialization.Serde
-import org.apache.kafka.streams.{TestInputTopic, TestOutputTopic, Topology, TopologyTestDriver}
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
 import org.apache.kafka.streams.scala.Serdes._
-import org.apache.kafka.streams.state.HostInfo
 
-import scala.jdk.CollectionConverters._
-
-class StreamingPipelineSpec extends AnyFunSpec with Matchers {
+class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorCommand, AuthorEvent, Author] {
   private val schemaRegistry = new TestSchemaRegistry
 
-  val target = new StreamingPipeline(
-    "dummy:9999",
-    schemaRegistry,
-    new HostInfo("dummy", 9999)
-  )
-  implicit val commandSerde: GenericSerde[AuthorCommand] = new GenericSerde(schemaRegistry)
-  implicit val eventSerde: GenericSerde[AuthorEvent] = new GenericSerde(schemaRegistry)
+  val serviceConfig: ServiceConfig = Config
+  val aggregateConfig: AggregateConfig = Config.Author
+
+  val target: StreamingPipelineBase = new StreamingPipeline(serviceConfig, schemaRegistry)
+  implicit val keySerde: Serde[String] = String
+  implicit val commandSerde: GenericSerde[Envelop[AuthorCommand]] = new GenericSerde(schemaRegistry)
+  implicit val eventSerde: GenericSerde[Envelop[AuthorEvent]] = new GenericSerde(schemaRegistry)
   implicit val snapshotSerde: GenericSerde[Author] = new GenericSerde(schemaRegistry)
 
   describe("authors") {
     describe("when sending various commands") {
       runTopology { driver =>
-        val commandTopic = driver.createInputTopic[String, AuthorCommand](Config.Author.topicCommands)
-
-        val (cmdId1, cmdId2, cmdId3) = (UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
-        commandTopic.pipeInput("spider-man", CreateAuthor(cmdId1, "spider-man", "Peter", "Parker"))
-        commandTopic.pipeInput("superman", CreateAuthor(cmdId2, "superman", "Clark", "Kent"))
-        commandTopic.pipeInput("spider-man", UpdateAuthor(cmdId3, "Miles", "Morales"))
+        val commandTopic = createCmdTopic(driver)
+        val (cmdId1, cmdId2, cmdId3) = (MsgId.random(), MsgId.random(), MsgId.random())
+        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("spider-man", "Peter", "Parker")))
+        commandTopic.pipeInput("superman", Envelop(cmdId2, CreateAuthor("superman", "Clark", "Kent")))
+        commandTopic.pipeInput("spider-man", Envelop(cmdId3, UpdateAuthor("Miles", "Morales")))
 
         it("should generate events") {
-          val eventsTopic = driver.createOutputTopic[String, AuthorEvent](Config.Author.topicEvents)
-          val events = eventsTopic.readKeyValuesToList().asScala
-            .map(x => x.key -> x.value)
-          events should be(Seq(
-            "spider-man" -> AuthorCreated(cmdId1, "spider-man", "Peter", "Parker"),
-            "superman" -> AuthorCreated(cmdId2, "superman", "Clark", "Kent"),
-            "spider-man" -> AuthorUpdated(cmdId3, "Miles", "Morales"),
-          ))
+          val events = getOutputEvents(driver)
+          events should have size 3
+          events should contain ("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
+          events should contain ("superman" -> Envelop(cmdId2, AuthorCreated("superman", "Clark", "Kent")))
+          events should contain ("spider-man" -> Envelop(cmdId3, AuthorUpdated("Miles", "Morales")))
         }
 
         it("should generate snapshots") {
-          val snapshotTopic = driver.createOutputTopic[String, Author](Config.Author.topicSnapshots)
-          val snapshots = snapshotTopic.readKeyValuesToMap().asScala
-          snapshots should be(Map(
-            "spider-man" -> Author("spider-man", "Miles", "Morales"),
-            "superman" -> Author("superman", "Clark", "Kent"),
-          ))
+          val snapshots = getOutputSnapshots(driver)
+          snapshots should have size 2
+          snapshots should contain ("spider-man" -> Author("spider-man", "Miles", "Morales"))
+          snapshots should contain ("superman" -> Author("superman", "Clark", "Kent"))
         }
       }
     }
 
     describe("when adding two authors with the same code") {
       runTopology { driver =>
-        val commandTopic = driver.createInputTopic[String, AuthorCommand](Config.Author.topicCommands)
+        val commandTopic = createCmdTopic(driver)
 
-        val (cmdId1, cmdId2) = (UUID.randomUUID(), UUID.randomUUID())
-        commandTopic.pipeInput("spider-man", CreateAuthor(cmdId1, "spider-man", "Peter", "Parker"))
-        commandTopic.pipeInput("spider-man", CreateAuthor(cmdId2, "spider-man", "Miles", "Morales"))
+        val (cmdId1, cmdId2) = (MsgId.random(), MsgId.random())
+        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("spider-man", "Peter", "Parker")))
+        commandTopic.pipeInput("spider-man", Envelop(cmdId2, CreateAuthor("spider-man", "Miles", "Morales")))
 
         it("should generate events only for the first one and one error") {
-          val eventsTopic = driver.createOutputTopic[String, AuthorEvent](Config.Author.topicEvents)
-          val events = eventsTopic.readKeyValuesToList().asScala
-            .map(x => x.key -> x.value)
-          events should be(Seq(
-            "spider-man" -> AuthorCreated(cmdId1, "spider-man", "Peter", "Parker"),
-            "spider-man" -> AuthorError(cmdId2, "Duplicated code")
-          ))
+          val events = getOutputEvents(driver)
+          events should have size 2
+          events should contain ("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
+          events should contain ("spider-man" -> Envelop(cmdId2, AuthorError("Duplicated code")))
         }
 
         it("generate snapshots only for the first one") {
-          val snapshotTopic = driver.createOutputTopic[String, Author](Config.Author.topicSnapshots)
-          val snapshots = snapshotTopic.readKeyValuesToMap().asScala
-          snapshots should be(Map(
-            "spider-man" -> Author("spider-man", "Peter", "Parker"),
-          ))
+          val snapshots = getOutputSnapshots(driver)
+          snapshots should have size 1
+          snapshots should contain ("spider-man" -> Author("spider-man", "Peter", "Parker"))
         }
       }
     }
 
     describe("when add an author, delete it and add it again") {
       runTopology { driver =>
-        val commandTopic = driver.createInputTopic[String, AuthorCommand](Config.Author.topicCommands)
+        val commandTopic = createCmdTopic(driver)
 
-        val (cmdId1, cmdId2, cmdId3) = (UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
-        commandTopic.pipeInput("spider-man", CreateAuthor(cmdId1, "spider-man", "Peter", "Parker"))
-        commandTopic.pipeInput("spider-man", DeleteAuthor(cmdId2))
-        commandTopic.pipeInput("spider-man", CreateAuthor(cmdId3, "spider-man", "Miles", "Morales"))
+        val (cmdId1, cmdId2, cmdId3) = (MsgId.random(), MsgId.random(), MsgId.random())
+        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("spider-man", "Peter", "Parker")))
+        commandTopic.pipeInput("spider-man", Envelop(cmdId2, DeleteAuthor()))
+        commandTopic.pipeInput("spider-man", Envelop(cmdId3, CreateAuthor("spider-man", "Miles", "Morales")))
 
         it("should generate events") {
-          val eventsTopic = driver.createOutputTopic[String, AuthorEvent](Config.Author.topicEvents)
-          val events = eventsTopic.readKeyValuesToList().asScala
-            .map(x => x.key -> x.value)
-          events should be(Seq(
-            "spider-man" -> AuthorCreated(cmdId1, "spider-man", "Peter", "Parker"),
-            "spider-man" -> AuthorDeleted(cmdId2),
-            "spider-man" -> AuthorCreated(cmdId3, "spider-man", "Miles", "Morales"),
-          ))
+          val events = getOutputEvents(driver)
+          events should have size 3
+          events should contain ("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
+          events should contain ("spider-man" -> Envelop(cmdId2, AuthorDeleted()))
+          events should contain ("spider-man" -> Envelop(cmdId3, AuthorCreated("spider-man", "Miles", "Morales")))
         }
 
         it("generate snapshots only for the last one") {
-          val snapshotTopic = driver.createOutputTopic[String, Author](Config.Author.topicSnapshots)
-          val snapshots = snapshotTopic.readKeyValuesToMap().asScala
-          snapshots should be(Map(
-            "spider-man" -> Author("spider-man", "Miles", "Morales"),
-          ))
+          val snapshots = getOutputSnapshots(driver)
+          snapshots should have size 1
+          snapshots should contain ("spider-man" -> Author("spider-man", "Miles", "Morales"))
         }
       }
     }
   }
 
-  def runTopology[T](testFun: ScalaTopologyTestDriver => T): T = {
-    val topology = target.createTopology()
-    val driver = new ScalaTopologyTestDriver(topology, target.properties)
-
-    try {
-      testFun(driver)
-    } finally {
-      driver.close()
-    }
-  }
 }
 
-class ScalaTopologyTestDriver
-(topology: Topology, config: Properties) extends TopologyTestDriver(topology, config) {
-  def createInputTopic[K, V](topicName: String)
-                            (implicit keySerde: Serde[K], valueSerde: Serde[V]): TestInputTopic[K, V] = {
-    super.createInputTopic(topicName, keySerde.serializer(), valueSerde.serializer())
-  }
-  def createOutputTopic[K, V](topicName: String)
-                             (implicit keySerde: Serde[K], valueSerde: Serde[V]): TestOutputTopic[K, V] = {
-    super.createOutputTopic(topicName, keySerde.deserializer(), valueSerde.deserializer())
-  }
-}
+

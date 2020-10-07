@@ -1,8 +1,8 @@
 package books.authors
 
-import java.util.UUID
-
+import akka.Done
 import books.Config
+import common.Envelop
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey
 import org.apache.kafka.streams.processor.ProcessorContext
 import org.apache.kafka.streams.state.KeyValueStore
@@ -12,7 +12,7 @@ import org.apache.kafka.streams.state.KeyValueStore
  *  AuthorCommand -> AuthorEvent
  */
 class AuthorCommandHandler
-  extends ValueTransformerWithKey[String, AuthorCommand, AuthorEvent] {
+  extends ValueTransformerWithKey[String, Envelop[AuthorCommand], Envelop[AuthorEvent]] {
 
   private var authorSnapshots: KeyValueStore[String, Author] = _
 
@@ -30,47 +30,47 @@ class AuthorCommandHandler
    * are still able to scale out by adding more partitions.
    */
   override def transform(
-                          key: String, value: AuthorCommand
-                        ): AuthorEvent = {
-    val errorOrSuccess = ensureCodeUniqueness(value)
-      .map(command => {
+                          key: String, value: Envelop[AuthorCommand]
+                        ): Envelop[AuthorEvent] = {
+    val msgId = value.msgId
+    val command = value.message
+    val errorOrSuccess = ensureCodeUniqueness(command)
+      .map(_ => {
         val snapshot = loadSnapshot(key)
         execCommand(snapshot, command)
       })
 
-    errorOrSuccess.merge
+    Envelop(msgId, errorOrSuccess.merge)
   }
 
   override def close(): Unit = ()
 
   private def execCommand(snapshot: Author, command: AuthorCommand): AuthorEvent = {
-    implicit val cmdId: UUID = command.cmdId
-
     command match {
-      case CreateAuthor(_, code, firstName, lastName) =>
+      case CreateAuthor(code, firstName, lastName) =>
         val event = snapshot.create(code, firstName, lastName)
         updateSnapshot(Author(snapshot, event))
         event
-      case DeleteAuthor(_) =>
+      case DeleteAuthor() =>
         val event = snapshot.delete()
         deleteSnapshot(snapshot.code)
         event
-      case UpdateAuthor(_, firstName, lastName) =>
+      case UpdateAuthor(firstName, lastName) =>
         val event = snapshot.update(firstName, lastName)
         updateSnapshot(Author(snapshot, event))
         event
     }
   }
 
-  private def ensureCodeUniqueness(command: AuthorCommand): Either[AuthorError, AuthorCommand] = {
+  private def ensureCodeUniqueness(command: AuthorCommand): Either[AuthorError, Done] = {
     command match {
       case cmd: CreateAuthor =>
         if (getSnapshot(cmd.code).isEmpty) {
-          Right(cmd)
+          Right(Done)
         } else {
-          Left(AuthorError(command.cmdId, "Duplicated code"))
+          Left(AuthorError("Duplicated code"))
         }
-      case c: AuthorCommand => Right(c) // pass-through
+      case _ => Right(Done)
     }
   }
 
@@ -89,4 +89,3 @@ class AuthorCommandHandler
     val _ = authorSnapshots.delete(key)
   }
 }
-
