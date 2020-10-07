@@ -20,7 +20,7 @@ object AuthorsTopology {
     // define stores
     streamsBuilder.addStateStore(
       Stores.keyValueStoreBuilder(
-        Stores.inMemoryKeyValueStore(Config.Author.storeSnapshots),
+        Stores.inMemoryKeyValueStore(Config.Author.storeSnapshots), // TODO eval if we should use a persisted store
         String,
         snapshotSerde))
 
