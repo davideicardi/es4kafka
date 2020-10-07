@@ -7,22 +7,15 @@ import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.kafka.ProducerSettings
-import akka.kafka.scaladsl.SendProducer
-import books.Config
 import books.authors._
-import com.davideicardi.kaa.SchemaRegistry
-import com.davideicardi.kaa.kafka.GenericSerde
 import common._
-import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.KafkaStreams
-import org.apache.kafka.streams.scala.Serdes._
 import org.apache.kafka.streams.state.QueryableStoreTypes
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
 import scala.concurrent._
-import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
 object AuthorsRoutesJsonFormats {
@@ -35,6 +28,7 @@ object AuthorsRoutesJsonFormats {
 class AuthorsRoutes(
                      commandSender: CommandSender[AuthorCommand],
                      authorStateReader: SnapshotStateReader[String, Author],
+                     aggregateConfig: AggregateConfig,
                    ) {
   import AuthorsRoutesJsonFormats._
   import EnvelopJsonFormats._
@@ -42,7 +36,7 @@ class AuthorsRoutes(
   def createRoute()(implicit executionContext: ExecutionContext): Route =
     concat(
       post {
-        path("authors") {
+        path(aggregateConfig.httpSegmentCreate) {
           entity(as[CreateAuthor]) { model =>
             val command = CreateAuthor(model.code, model.firstName, model.lastName)
             complete {
@@ -90,49 +84,30 @@ class AuthorsRoutes(
     )
 }
 
-// TODO Eval to put this in common?
-class AuthorsCommandSender(
-                            schemaRegistry: SchemaRegistry
-                          )(implicit actorSystem: ActorSystem) extends CommandSender[AuthorCommand] {
-  private implicit val commandSerde: GenericSerde[Envelop[AuthorCommand]] = new GenericSerde(schemaRegistry)
 
-  private val config = actorSystem.settings.config.getConfig("akka.kafka.producer")
-  private val producerSettings = ProducerSettings(config, String.serializer(), commandSerde.serializer())
-    .withBootstrapServers(Config.kafka_brokers)
-  private val producer = SendProducer(producerSettings)
 
-  def send(key: String, command: AuthorCommand)(implicit executionContext: ExecutionContext): Future[MsgId] = {
-    val msgId = MsgId.random()
-    val envelop = Envelop(msgId, command)
-    producer
-      .send(new ProducerRecord(Config.Author.topicCommands, key, envelop))
-      .map(_ => msgId)
-  }
-
-  def close(): Unit = {
-    val _ = Await.result(producer.close(), 1.minute)
-  }
-}
-
-class AuthorsStateReader(
+class DefaultSnapshotsStateReader[TKey, TSnapshot](
                           metadataService: MetadataService,
                           streams: KafkaStreams,
-                          hostInfo: HostInfoServices
+                          hostInfo: HostInfoServices,
+                          aggregateConfig: AggregateConfig,
                         )
                         (
-                          implicit system: ActorSystem, executionContext: ExecutionContext
-                        ) extends SnapshotStateReader[String, Author]{
-  implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
+                          implicit system: ActorSystem,
+                          executionContext: ExecutionContext,
+                          jsonFormat: RootJsonFormat[TSnapshot],
+                          keySerde: Serde[TKey]
+                        ) extends SnapshotStateReader[TKey, TSnapshot]{
 
-  def fetchAll(onlyLocal: Boolean): Future[Seq[Author]] = {
+  def fetchAll(onlyLocal: Boolean): Future[Seq[TSnapshot]] = {
     if (onlyLocal)
       fetchAllLocal()
     else
       fetchAllRemotes()
   }
 
-  private def fetchAllRemotes(): Future[Seq[Author]] = {
-    val futureList = metadataService.streamsMetadataForStore(Config.Author.storeSnapshots)
+  private def fetchAllRemotes(): Future[Seq[TSnapshot]] = {
+    val futureList = metadataService.streamsMetadataForStore(aggregateConfig.storeSnapshots)
       .map(host => {
         fetchAllRemote(host)
       })
@@ -141,10 +116,10 @@ class AuthorsStateReader(
       .map(_.flatten)
   }
 
-  private def fetchAllLocal(): Future[Seq[Author]] = Future {
+  private def fetchAllLocal(): Future[Seq[TSnapshot]] = Future {
     val optionalStore = StateStores.waitUntilStoreIsQueryable(
-      Config.Author.storeSnapshots,
-      QueryableStoreTypes.keyValueStore[String, Author](),
+      aggregateConfig.storeSnapshots,
+      QueryableStoreTypes.keyValueStore[TKey, TSnapshot](),
       streams
     )
 
@@ -155,56 +130,51 @@ class AuthorsStateReader(
       } finally {
         iterator.close()
       }
-    }.getOrElse(Seq[Author]())
+    }.getOrElse(Seq[TSnapshot]())
   }
 
-  private def fetchAllRemote(host: HostStoreInfo): Future[Seq[Author]] = {
-    val requestPath = s"http://${host.host}:${host.port}/authors?_local=true"
+  private def fetchAllRemote(host: HostStoreInfo): Future[Seq[TSnapshot]] = {
+    val requestPath = s"http://${host.host}:${host.port}/${aggregateConfig.snapshotsRestSegmentAll}?_local=true"
     Http().singleRequest(HttpRequest(uri = requestPath))
       .flatMap { response =>
-        Unmarshal(response.entity).to[Seq[Author]]
+        Unmarshal(response.entity).to[Seq[TSnapshot]]
       }
   }
 
-  def fetchOne(code: String): Future[Option[Author]] = {
-    println(s"fetchAuthor $code")
-    val hostForStore = metadataService.streamsMetadataForStoreAndKey[String](
-      Config.Author.storeSnapshots,
-      code,
-      String.serializer()
+  def fetchOne(key: TKey): Future[Option[TSnapshot]] = {
+    val hostForStore = metadataService.streamsMetadataForStoreAndKey(
+      aggregateConfig.storeSnapshots,
+      key,
+      keySerde.serializer()
     )
 
-    println(f"Running on ${hostInfo.thisHostInfo}, store is at ${hostForStore.host}:${hostForStore.port}")
-    //store is hosted on another process, REST Call
+    // store is hosted on another process, REST Call
     if (hostInfo.isThisHost(hostForStore))
-      fetchOneLocal(code)
+      fetchOneLocal(key)
     else
-      fetchOneRemote(hostForStore, code)
+      fetchOneRemote(hostForStore, key)
   }
 
-  private def fetchOneRemote(host: HostStoreInfo, code: String): Future[Option[Author]] = {
-    val requestPath = s"http://${host.host}:${host.port}/authors/$code"
-    println(s"fetchRemoteAuthor at $requestPath")
+  private def fetchOneRemote(host: HostStoreInfo, key: TKey): Future[Option[TSnapshot]] = {
+    val requestPath = s"http://${host.host}:${host.port}/${aggregateConfig.snapshotsRestSegmentOne}/$key"
     Http().singleRequest(HttpRequest(uri = requestPath))
       .flatMap { response =>
         if (response.status == StatusCodes.NotFound)
           Future(None)
         else
           Unmarshal(response.entity)
-            .to[Author]
+            .to[TSnapshot]
             .map(Some(_))
       }
   }
 
-  private def fetchOneLocal(code: String): Future[Option[Author]] = Future {
-    println(s"fetchLocalAuthor code=$code")
-
+  private def fetchOneLocal(key: TKey): Future[Option[TSnapshot]] = Future {
     val store = StateStores.waitUntilStoreIsQueryable(
-      Config.Author.storeSnapshots,
-      QueryableStoreTypes.keyValueStore[String, Author](),
+      aggregateConfig.storeSnapshots,
+      QueryableStoreTypes.keyValueStore[TKey, TSnapshot](),
       streams
     )
 
-    store.map(_.get(code))
+    store.map(_.get(key))
   }
 }
