@@ -23,33 +23,35 @@ object EntryPoint extends App with EventSourcingApp {
   val metadataService = new MetadataService(streams)
   val hostInfoService = new HostInfoServices(serviceConfig.rest_endpoint)
 
-  // aggregates http routes
-  private def createAuthorRoutes() = {
-    val aggregateConfig = Config.Author
-    val commandSender = new DefaultCommandSender[AuthorCommand](
-      system,
-      schemaRegistry,
-      serviceConfig,
-      Config.Author
-    )
-    val authorJsonFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
-    val stateReader = new DefaultSnapshotsStateReader[String, Author](
-      system,
-      metadataService,
-      streams,
-      hostInfoService,
-      aggregateConfig,
-      Serdes.String,
-      authorJsonFormat,
-    )
-    new AuthorsRoutes(commandSender, stateReader, aggregateConfig)
-  }
+  // Authors
+  val authorsCommandSender = new DefaultCommandSender[AuthorCommand](
+    system,
+    schemaRegistry,
+    serviceConfig,
+    Config.Author
+  )
+  val authorJsonFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
+  val authorsStateReader = new DefaultSnapshotsStateReader[String, Author](
+    system,
+    metadataService,
+    streams,
+    hostInfoService,
+    Config.Author,
+    Serdes.String,
+    authorJsonFormat,
+  )
+  val authorsRoutes = new AuthorsRoutes(authorsCommandSender, authorsStateReader, Config.Author)
 
   val controllers: Seq[RouteController] = Seq(
     new MetadataRoutes(metadataService),
-    createAuthorRoutes()
+    authorsRoutes
   )
 
   run()
+
+  override protected def shutDown(): Unit = {
+    super.shutDown()
+    authorsCommandSender.close()
+  }
 }
 

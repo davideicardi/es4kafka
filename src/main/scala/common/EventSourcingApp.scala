@@ -13,23 +13,22 @@ trait EventSourcingApp {
   val serviceConfig: ServiceConfig
   val controllers: Seq[RouteController]
   val streams: KafkaStreams
-
+  implicit val system: ActorSystem
   implicit val ec: ExecutionContextExecutor = ExecutionContext.global
+
+  lazy val restService = new AkkaHttpServer(
+    serviceConfig.rest_endpoint,
+    controllers)
+
   private val doneSignal = new CountDownLatch(1)
 
-  def run()(implicit system: ActorSystem): Unit = {
+  def run(): Unit = {
     println(s"Connecting to Kafka cluster via bootstrap servers ${serviceConfig.kafka_brokers}")
     println(s"HTTP RPC endpoints at http://${serviceConfig.rest_endpoint.host}:${serviceConfig.rest_endpoint.port}")
 
-    val restService = new AkkaHttpServer(
-      serviceConfig.rest_endpoint,
-      controllers)
-
-    // Can only add this in State == CREATED
     streams.setUncaughtExceptionHandler((_: Thread, throwable: Throwable) => {
       println(s"============> ${throwable.getMessage}")
-      shutDown(streams, restService)
-
+      shutDown()
     })
 
     streams.setStateListener((newState, _) => {
@@ -41,7 +40,7 @@ trait EventSourcingApp {
     // TODO Verify how to handle shutdown for k8s
     // TODO Verify how to handle healthcheck for k8s
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
-      shutDown(streams, restService)
+      shutDown()
     }))
 
     // Always (and unconditionally) clean local state prior to starting the processing topology.
@@ -66,8 +65,7 @@ trait EventSourcingApp {
     doneSignal.await()
   }
 
-
-  private def shutDown(streams: KafkaStreams, restService: AkkaHttpServer): Unit = {
+  protected def shutDown(): Unit = {
     doneSignal.countDown()
     streams.close()
     restService.stop()
