@@ -1,19 +1,16 @@
-package books.authors
+package books.authors.streaming
 
 import books.Config
+import books.authors._
 import com.davideicardi.kaa.SchemaRegistry
 import com.davideicardi.kaa.kafka.GenericSerde
 import common.Envelop
-import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.scala.Serdes._
 import org.apache.kafka.streams.scala.StreamsBuilder
 import org.apache.kafka.streams.state.Stores
+import org.apache.kafka.streams.scala.ImplicitConversions._
 
-
-/**
- * Define the streaming topology for the author aggregate
- */
-object AuthorStreamingPipeline {
+object AuthorsTopology {
   def defineTopology(streamsBuilder: StreamsBuilder, schemaRegistry: SchemaRegistry): Unit = {
     // avro serializers
     implicit val commandSerde: GenericSerde[Envelop[AuthorCommand]] = new GenericSerde(schemaRegistry)
@@ -23,7 +20,7 @@ object AuthorStreamingPipeline {
     // define stores
     streamsBuilder.addStateStore(
       Stores.keyValueStoreBuilder(
-        Stores.inMemoryKeyValueStore(Config.Author.storeSnapshots),
+        Stores.inMemoryKeyValueStore(Config.Author.storeSnapshots), // TODO eval if we should use a persisted store
         String,
         snapshotSerde))
 

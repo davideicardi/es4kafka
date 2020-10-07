@@ -1,5 +1,6 @@
 package common
 
+import common.streaming.StreamingPipelineBase
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.{TestInputTopic, TestOutputTopic, TopologyTestDriver}
 import org.scalatest.funspec.AnyFunSpec
