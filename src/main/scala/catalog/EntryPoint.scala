@@ -2,15 +2,13 @@ package catalog
 
 import akka.actor.ActorSystem
 import catalog.authors.http.AuthorsRoutes
-import catalog.authors.{Author, AuthorCommand}
+import catalog.authors.{Author, AuthorCommand, AuthorEvent, AuthorEventsJsonFormats, AuthorJsonFormats}
 import com.davideicardi.kaa.KaaSchemaRegistry
 import common._
 import common.http.{MetadataRoutes, RouteController}
 import common.streaming.{DefaultSnapshotsStateReader, MetadataService}
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.KafkaStreams
-import spray.json.DefaultJsonProtocol.{jsonFormat3, _}
-import spray.json._
 
 object EntryPoint extends App with EventSourcingApp {
   val serviceConfig: ServiceConfig = Config
@@ -20,25 +18,26 @@ object EntryPoint extends App with EventSourcingApp {
   val streams: KafkaStreams = new KafkaStreams(
     streamingPipeline.createTopology(),
     streamingPipeline.properties)
-  val metadataService = new MetadataService(streams)
   val hostInfoService = new HostInfoServices(serviceConfig.rest_endpoint)
+  val metadataService = new MetadataService(streams, hostInfoService)
 
   // Authors
-  val authorsCommandSender = new DefaultCommandSender[AuthorCommand](
+  val authorsCommandSender = new DefaultCommandSender[AuthorCommand, AuthorEvent](
     system,
     schemaRegistry,
     serviceConfig,
-    Config.Author
+    Config.Author,
+    metadataService,
+    streams,
+    AuthorEventsJsonFormats.AuthorEventFormat
   )
-  val authorJsonFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
   val authorsStateReader = new DefaultSnapshotsStateReader[String, Author](
     system,
     metadataService,
     streams,
-    hostInfoService,
     Config.Author,
     Serdes.String,
-    authorJsonFormat,
+    AuthorJsonFormats.AuthorFormat,
   )
   val authorsRoutes = new AuthorsRoutes(authorsCommandSender, authorsStateReader, Config.Author)
 

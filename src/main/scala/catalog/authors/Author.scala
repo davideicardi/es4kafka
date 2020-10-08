@@ -56,3 +56,10 @@ case class Author(code: String, firstName: String, lastName: String) {
       AuthorDeleted()
   }
 }
+
+object AuthorJsonFormats {
+  import spray.json._
+  import spray.json.DefaultJsonProtocol._
+  // json serializers
+  implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
+}

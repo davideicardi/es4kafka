@@ -15,7 +15,7 @@ object StateStores {
     streams: KafkaStreams
   ): Option[T] = {
 
-    // TODO use a retry non blocking (with a Future)
+    // TODO use a retry non blocking (with a Future), see retry package already imported...
     Retry.retryIfNone(RetryConfig(5, 500.milliseconds)) {
       Try {
         streams.store(StoreQueryParameters.fromNameAndType(storeName, queryableStoreType))

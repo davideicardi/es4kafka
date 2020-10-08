@@ -61,6 +61,8 @@ lazy val root = (project in file("."))
       "com.davideicardi" %% "kaa" % "0.3.4",
       // logging (for kafka)
       "ch.qos.logback" % "logback-classic" % "1.2.3",
+      // retry library
+      "com.softwaremill.retry" %% "retry" % "0.3.3",
       // test
       "org.scalamock" %% "scalamock" % "4.4.0" % "it,test",
       "org.apache.kafka" % "kafka-streams-test-utils" % kafkaVersion % "it,test",
