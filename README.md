@@ -1,5 +1,5 @@
 
-# Books Catalog Event Sourcing with Kafka Streams
+# Event Sourcing with Kafka Streams
 
 Event driven/event sourcing microservice example written with:
 

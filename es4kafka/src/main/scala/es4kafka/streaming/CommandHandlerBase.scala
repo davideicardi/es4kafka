@@ -34,7 +34,7 @@ abstract class CommandHandlerBase[TKey, TCommand, TEvent, TSnapshot](
                         ): Envelop[TEvent] = {
     val msgId = value.msgId
     val command = value.message
-    val snapshot = loadSnapshot(key)
+    val snapshot = readSnapshot(key).getOrElse(snapshotDraft)
     val event = execCommand(key, snapshot, command)
 
     Envelop(msgId, event)
@@ -46,12 +46,8 @@ abstract class CommandHandlerBase[TKey, TCommand, TEvent, TSnapshot](
 
   protected def snapshotDraft: TSnapshot
 
-  protected def getSnapshot(key: TKey): Option[TSnapshot] =
+  protected def readSnapshot(key: TKey): Option[TSnapshot] =
     Option(storeSnapshots.get(key))
-
-  protected def loadSnapshot(key: TKey): TSnapshot =
-    getSnapshot(key)
-      .getOrElse(snapshotDraft)
 
   protected def updateSnapshot(key: TKey, snapshot: TSnapshot): Unit = {
     storeSnapshots.put(key, snapshot)

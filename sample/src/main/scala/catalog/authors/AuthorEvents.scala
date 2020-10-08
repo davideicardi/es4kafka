@@ -31,7 +31,7 @@ object AuthorEventsJsonFormats {
         case e: AuthorError => e.toJson.asJsObject.fields
       }
       val extendedFields = fields ++ Seq(
-        "_name" -> JsString(value.className),
+        "_type" -> JsString(value.className),
         "_isError" -> JsBoolean(value.isError),
       )
       JsObject(extendedFields)
@@ -42,7 +42,7 @@ object AuthorEventsJsonFormats {
       // import com.github.dwickern.macros.NameOf._
 
       json match {
-        case jsObj: JsObject => jsObj.fields.getOrElse("_name", JsNull) match {
+        case jsObj: JsObject => jsObj.fields.getOrElse("_type", JsNull) match {
           case JsString("AuthorCreated") => jsObj.convertTo[AuthorCreated]
           case JsString("AuthorUpdated") => jsObj.convertTo[AuthorUpdated]
           case JsString("AuthorDeleted") => jsObj.convertTo[AuthorDeleted]
