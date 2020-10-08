@@ -33,6 +33,10 @@ NOTE: For the current model this is for sure an over-kill architecture, but the 
 
 ![technical-view](docs/technical-view.drawio.png)
 
+## Kafka Stream Topology
+
+![event-sourcing-topology](docs/event-sourcing-topology.drawio.png)
+
 ## Microservices
 
 This example can be used as a template for a service/microservice.
