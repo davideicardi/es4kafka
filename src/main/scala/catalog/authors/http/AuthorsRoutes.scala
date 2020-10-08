@@ -8,30 +8,27 @@ import common._
 import common.http.{RouteController, RpcActions}
 import common.streaming.SnapshotStateReader
 import spray.json.DefaultJsonProtocol._
-import spray.json._
 
 import scala.concurrent._
 
-object AuthorsRoutesJsonFormats {
-  // json serializers
-  implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
-  implicit val CreateAuthorFormat: RootJsonFormat[CreateAuthor] = jsonFormat3(CreateAuthor)
-  implicit val UpdateAuthorFormat: RootJsonFormat[UpdateAuthor] = jsonFormat2(UpdateAuthor)
-}
-
 class AuthorsRoutes(
-                     commandSender: CommandSender[AuthorCommand],
+                     commandSender: CommandSender[AuthorCommand, AuthorEvent],
                      authorStateReader: SnapshotStateReader[String, Author],
                      aggregateConfig: AggregateConfig,
                    ) extends RouteController {
-  import AuthorsRoutesJsonFormats._
-  import EnvelopJsonFormats._
+  import CommonJsonFormats._
+  import AuthorJsonFormats._
+  import AuthorEventsJsonFormats._
+  import AuthorCommandsJsonFormats._
 
-  def createRoute()(implicit executionContext: ExecutionContext): Route =
+  def createRoute()(implicit executionContext: ExecutionContext): Route = {
+    import aggregateConfig._
+    import RpcActions._
+
     concat(
       post {
         concat(
-          path(aggregateConfig.httpPrefix / RpcActions.create) {
+          path(httpPrefix / create) {
             entity(as[CreateAuthor]) { model =>
               val command = CreateAuthor(model.code, model.firstName, model.lastName)
               complete {
@@ -39,7 +36,7 @@ class AuthorsRoutes(
               }
             }
           },
-          path(aggregateConfig.httpPrefix / RpcActions.update / Segment) { code =>
+          path(httpPrefix / update / Segment) { code =>
             entity(as[UpdateAuthor]) { model =>
               val command = UpdateAuthor(model.firstName, model.lastName)
               complete {
@@ -47,7 +44,7 @@ class AuthorsRoutes(
               }
             }
           },
-          path(aggregateConfig.httpPrefix / RpcActions.delete / Segment) { code =>
+          path(httpPrefix / delete / Segment) { code =>
             val command = DeleteAuthor()
             complete {
               commandSender.send(code, command)
@@ -57,15 +54,22 @@ class AuthorsRoutes(
       },
       get {
         concat(
-          path(aggregateConfig.httpPrefix / RpcActions.all) {
-            parameter(RpcActions.localParam.as[Boolean].optional) { localOnly =>
+          rejectEmptyResponse {
+            path(httpPrefix / events / one / JavaUUID) { msgId =>
+              complete {
+                commandSender.wait(MsgId(msgId))
+              }
+            }
+          },
+          path(httpPrefix / all) {
+            parameter(localParam.as[Boolean].optional) { localOnly =>
               complete {
                 authorStateReader.fetchAll(localOnly.getOrElse(false))
               }
             }
           },
           rejectEmptyResponse {
-            path(aggregateConfig.httpPrefix / RpcActions.one / Segment) { code =>
+            path(httpPrefix / one / Segment) { code =>
               complete {
                 authorStateReader.fetchOne(code)
               }
@@ -74,6 +78,7 @@ class AuthorsRoutes(
         )
       },
     )
+  }
 }
 
 

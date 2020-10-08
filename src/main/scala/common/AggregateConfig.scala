@@ -11,6 +11,7 @@ trait AggregateConfig {
 
   // Kafka Streams store convention: {name}.store.{kind} (store already have a prefix the app id)
   lazy val storeSnapshots: String = s"$aggregateName.store.snapshots"
+  lazy val storeEventsByMsgId: String = s"$aggregateName.store.eventsByMsgId"
 
   // HTTP RPC segments
   lazy val httpPrefix: String = aggregateName

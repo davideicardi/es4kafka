@@ -6,7 +6,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import common.http.RpcActions
-import common.{AggregateConfig, HostInfoServices}
+import common.AggregateConfig
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.state.QueryableStoreTypes
@@ -20,7 +20,6 @@ class DefaultSnapshotsStateReader[TKey, TSnapshot](
                                                     actorSystem: ActorSystem,
                                                     metadataService: MetadataService,
                                                     streams: KafkaStreams,
-                                                    hostInfo: HostInfoServices,
                                                     aggregateConfig: AggregateConfig,
                                                     keySerde: Serde[TKey],
                                                     snapshotJsonFormat: RootJsonFormat[TSnapshot],
@@ -38,21 +37,23 @@ class DefaultSnapshotsStateReader[TKey, TSnapshot](
   }
 
   def fetchOne(key: TKey): Future[Option[TSnapshot]] = {
-    val hostForStore = metadataService.streamsMetadataForStoreAndKey(
+    val hostForStore = metadataService.hostForStoreAndKey(
       aggregateConfig.storeSnapshots,
       key,
       keySerde.serializer()
     )
 
-    // store is hosted on another process, REST Call
-    if (hostInfo.isThisHost(hostForStore))
-      fetchOneLocal(key)
-    else
-      fetchOneRemote(hostForStore, key)
+    hostForStore.map(metadata => {
+      // store is hosted on another process, REST Call
+      if (metadata.isLocal)
+        fetchOneLocal(key)
+      else
+        fetchOneRemote(metadata, key)
+    }).getOrElse(Future(None))
   }
 
   private def fetchAllRemotes(): Future[Seq[TSnapshot]] = {
-    val futureList = metadataService.streamsMetadataForStore(aggregateConfig.storeSnapshots)
+    val futureList = metadataService.hostsForStore(aggregateConfig.storeSnapshots)
       .map(host => {
         fetchAllRemote(host)
       })
@@ -78,7 +79,7 @@ class DefaultSnapshotsStateReader[TKey, TSnapshot](
     }.getOrElse(Seq[TSnapshot]())
   }
 
-  private def fetchAllRemote(host: HostStoreInfo): Future[Seq[TSnapshot]] = {
+  private def fetchAllRemote(host: MetadataStoreInfo): Future[Seq[TSnapshot]] = {
     val requestPath = s"${aggregateConfig.httpPrefix}/${RpcActions.all}?${RpcActions.localParam}=true"
     val requestUri = s"http://${host.host}:${host.port}/$requestPath"
     Http().singleRequest(HttpRequest(uri = requestUri))
@@ -87,7 +88,7 @@ class DefaultSnapshotsStateReader[TKey, TSnapshot](
       }
   }
 
-  private def fetchOneRemote(host: HostStoreInfo, key: TKey): Future[Option[TSnapshot]] = {
+  private def fetchOneRemote(host: MetadataStoreInfo, key: TKey): Future[Option[TSnapshot]] = {
     val requestPath = s"${aggregateConfig.httpPrefix}/${RpcActions.one}/$key"
     val requestUri = s"http://${host.host}:${host.port}/$requestPath"
     Http().singleRequest(HttpRequest(uri = requestUri))

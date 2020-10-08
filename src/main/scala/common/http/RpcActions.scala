@@ -1,6 +1,8 @@
 package common.http
 
 object RpcActions {
+  lazy val events: String = "events"
+
   lazy val create: String = "create"
   lazy val update: String = "update"
   lazy val delete: String = "delete"
