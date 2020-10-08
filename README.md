@@ -143,8 +143,7 @@ HTTP RPC style API are available at: http://localhost:9081/
 ## TODO
 
 - create topics at startup with correct properties (compact, retention, ...) 
-- extract common code
-- review TODO/println
+- review TODO
 - test with multiple partitions/instances
 - add books
 
