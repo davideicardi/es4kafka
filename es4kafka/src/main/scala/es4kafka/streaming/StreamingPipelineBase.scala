@@ -14,7 +14,7 @@ trait StreamingPipelineBase {
   properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, serviceConfig.kafka_brokers)
   properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE)
   properties.put(
-    StreamsConfig.APPLICATION_SERVER_CONFIG, s"${serviceConfig.rest_endpoint.host}:${serviceConfig.rest_endpoint.port}")
+    StreamsConfig.APPLICATION_SERVER_CONFIG, s"${serviceConfig.http_endpoint.host}:${serviceConfig.http_endpoint.port}")
 
   def createTopology(): Topology
 }

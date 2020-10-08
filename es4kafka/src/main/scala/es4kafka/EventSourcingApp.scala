@@ -17,14 +17,14 @@ trait EventSourcingApp {
   implicit val ec: ExecutionContextExecutor = ExecutionContext.global
 
   lazy val restService = new AkkaHttpServer(
-    serviceConfig.rest_endpoint,
+    serviceConfig.http_endpoint,
     controllers)
 
   private val doneSignal = new CountDownLatch(1)
 
   def run(): Unit = {
     println(s"Connecting to Kafka cluster via bootstrap servers ${serviceConfig.kafka_brokers}")
-    println(s"HTTP RPC endpoints at http://${serviceConfig.rest_endpoint.host}:${serviceConfig.rest_endpoint.port}")
+    println(s"HTTP RPC endpoints at http://${serviceConfig.http_endpoint.host}:${serviceConfig.http_endpoint.port}")
 
     streams.setUncaughtExceptionHandler((_: Thread, throwable: Throwable) => {
       println(s"============> ${throwable.getMessage}")

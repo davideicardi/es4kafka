@@ -18,7 +18,7 @@ object EntryPoint extends App with EventSourcingApp {
   val streams: KafkaStreams = new KafkaStreams(
     streamingPipeline.createTopology(),
     streamingPipeline.properties)
-  val hostInfoService = new HostInfoServices(serviceConfig.rest_endpoint)
+  val hostInfoService = new HostInfoServices(serviceConfig.http_endpoint)
   val metadataService = new MetadataService(streams, hostInfoService)
 
   // Authors
