@@ -116,10 +116,10 @@ Run unit tests:
 sbt test
 ```
 
-Run the app:
+Run the sample app:
 
 ```
-sbt run
+sbt sample/run
 ```
 
 HTTP RPC style API are available at: http://localhost:9081/
@@ -127,9 +127,14 @@ HTTP RPC style API are available at: http://localhost:9081/
 - `GET /authors/all` - gel all authors
 - `GET /authors/one/{code}` - gel one author
 - `POST /authors/create` - create an author
-    - body: `CreateAuthorModel` as json
+    - request body: `CreateAuthor` as json
+    - response body: event
 - `POST /authors/update/{code}` - update an author
+    - request body: `UpdateAuthor` as json
+    - response body: event
 - `POST /authors/delete/{code}` - delete an author
+    - request body: `DeleteAuthor` as json
+    - response body: event
 
 ## TODO
 

@@ -42,11 +42,19 @@ val kafkaVersion = "2.6.0"
 val scalaTestVersion = "3.2.2"
 val AkkaVersion = "2.6.8"
 val AkkaHttpVersion = "10.2.1"
-lazy val root = (project in file("."))
-  .configs(IntegrationTest)
+
+val testDependencies = Seq(
+  "org.scalamock" %% "scalamock" % "4.4.0",
+  "org.apache.kafka" % "kafka-streams-test-utils" % kafkaVersion,
+  "org.scalatest" %% "scalatest-funspec"       % scalaTestVersion,
+  "org.scalatest" %% "scalatest-shouldmatchers" % scalaTestVersion,
+  "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion,
+  "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion,
+)
+
+lazy val es4kafka = (project in file("es4kafka"))
   .settings(
-    name := "books-catalog-es",
-    Defaults.itSettings,
+    name := "es4kafka",
     libraryDependencies ++= Seq(
       // kafka streams
       "org.apache.kafka" %% "kafka-streams-scala" % kafkaVersion,
@@ -63,12 +71,23 @@ lazy val root = (project in file("."))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       // retry library
       "com.softwaremill.retry" %% "retry" % "0.3.3",
-      // test
-      "org.scalamock" %% "scalamock" % "4.4.0" % "it,test",
-      "org.apache.kafka" % "kafka-streams-test-utils" % kafkaVersion % "it,test",
-      "org.scalatest" %% "scalatest-funspec"       % scalaTestVersion % "it,test",
-      "org.scalatest" %% "scalatest-shouldmatchers" % scalaTestVersion % "it,test",
-      "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % "it,test",
-      "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % "it,test",
-    )
+    ),
   )
+
+lazy val es4kafkaTest = (project in file("es4kafka-test"))
+  .settings(
+    name := "es4kafka-test",
+    libraryDependencies ++= testDependencies,
+  )
+  .dependsOn(es4kafka)
+
+lazy val sample = (project in file("sample"))
+  .settings(
+    name := "sample-books-catalog",
+    publish / skip := true,
+    libraryDependencies ++= testDependencies,
+  )
+  .dependsOn(es4kafka, es4kafkaTest % "test")
+
+lazy val root = (project in file("."))
+  .aggregate(es4kafka, sample)
