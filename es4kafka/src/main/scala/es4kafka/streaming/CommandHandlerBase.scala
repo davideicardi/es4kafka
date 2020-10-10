@@ -3,7 +3,7 @@ package es4kafka.streaming
 import es4kafka.{AggregateConfig, Envelop}
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey
 import org.apache.kafka.streams.processor.ProcessorContext
-import org.apache.kafka.streams.state.KeyValueStore
+import org.apache.kafka.streams.state._
 
 /**
  * Transform a command to an event.
@@ -14,12 +14,12 @@ abstract class CommandHandlerBase[TKey, TCommand, TEvent, TSnapshot](
                                                                     )
   extends ValueTransformerWithKey[TKey, Envelop[TCommand], Envelop[TEvent]] {
 
-  private var storeSnapshots: KeyValueStore[TKey, TSnapshot] = _
+  private var storeSnapshots: TimestampedKeyValueStore[TKey, TSnapshot] = _
 
   override def init(context: ProcessorContext): Unit = {
     storeSnapshots = context
       .getStateStore(aggregateConfig.storeSnapshots)
-      .asInstanceOf[KeyValueStore[TKey, TSnapshot]]
+      .asInstanceOf[TimestampedKeyValueStore[TKey, TSnapshot]]
   }
 
   /**
@@ -47,17 +47,5 @@ abstract class CommandHandlerBase[TKey, TCommand, TEvent, TSnapshot](
   protected def snapshotDraft: TSnapshot
 
   protected def readSnapshot(key: TKey): Option[TSnapshot] =
-    Option(storeSnapshots.get(key))
-
-  protected def updateSnapshot(key: TKey, snapshot: TSnapshot): Unit = {
-    storeSnapshots.put(key, snapshot)
-  }
-
-  protected def deleteSnapshot(key: TKey): Unit = {
-    val _ = storeSnapshots.delete(key)
-  }
-
-  protected def addSnapshotIfAbsent(key: TKey, snapshot: TSnapshot): Boolean = {
-    Option(storeSnapshots.putIfAbsent(key, snapshot)).isEmpty
-  }
+    Option(storeSnapshots.get(key)).map(_.value())
 }

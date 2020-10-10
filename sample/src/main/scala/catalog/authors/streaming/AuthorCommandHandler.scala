@@ -10,29 +10,15 @@ class AuthorCommandHandler() extends CommandHandlerBase[String, AuthorCommand, A
   protected override def execCommand(key: String, snapshot: Author, command: AuthorCommand): AuthorEvent = {
     command match {
       case CreateAuthor(code, firstName, lastName) =>
-        val event = snapshot.create(code, firstName, lastName)
-        val newSnapshot = Author(snapshot, event)
-        if (newSnapshot.code != key)
+        if (code != key)
           AuthorError("Key doesn't match")
         else {
-          if (addSnapshotIfAbsent(key, newSnapshot))
-            event
-          else
-            AuthorError("Duplicated code")
+          snapshot.create(code, firstName, lastName)
         }
       case DeleteAuthor() =>
-        val event = snapshot.delete()
-        deleteSnapshot(snapshot.code)
-        event
+        snapshot.delete()
       case UpdateAuthor(firstName, lastName) =>
-        val event = snapshot.update(firstName, lastName)
-        val newSnapshot = Author(snapshot, event)
-        if (newSnapshot.code != key)
-          AuthorError("Key doesn't match")
-        else {
-          updateSnapshot(key, newSnapshot)
-          event
-        }
+        snapshot.update(firstName, lastName)
     }
   }
 

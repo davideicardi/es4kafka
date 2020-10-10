@@ -56,8 +56,8 @@ trait EventSourcingApp {
     // here but rather only when it is truly needed, i.e., only under certain conditions
     // (e.g., the presence of a command line flag for your app).
     // See `ApplicationResetExample.java` for a production-like example.
-//    println("Cleanup KafkaStream...")
-//    streams.cleanUp()
+    // println("Cleanup KafkaStream...")
+    // streams.cleanUp()
 
     println("Starting KafkaStream...")
     streams.start()

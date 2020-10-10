@@ -21,36 +21,43 @@ object AuthorsTopology {
     implicit val snapshotSerde: GenericSerde[Author] = new GenericSerde(schemaRegistry)
     implicit val uuidSerde: UUIDSerde = new UUIDSerde
 
-    // define stores
-    streamsBuilder.addStateStore(
-      Stores.keyValueStoreBuilder(
-        Stores.inMemoryKeyValueStore(Config.Author.storeSnapshots), // TODO eval if we should use a persisted store
-        String,
-        snapshotSerde))
+    // TODO eval where use persisted stores or windowed stores
+
+    // STORES
+    // This is the store used inside the AuthorCommandHandler, to verify code uniqueness.
+    val storeSnapshots =
+      Stores.inMemoryKeyValueStore(Config.Author.storeSnapshots)
+    // maybe it is better to use a windowed store (last day?) to avoid having to much data, we don't need historical data for this
     val storeEventsByMsgId =
-      Stores.inMemoryKeyValueStore(Config.Author.storeEventsByMsgId) // TODO eval if we should use a windowed store (last day?)
+      Stores.inMemoryKeyValueStore(Config.Author.storeEventsByMsgId)
 
-    // input Author commands
-    val commandsStream =
+    // INPUT
+    val inputCommandsStream =
       streamsBuilder.stream[String, Envelop[AuthorCommand]](Config.Author.topicCommands)
+    val inputEventStream =
+      streamsBuilder.stream[String, Envelop[AuthorEvent]](Config.Author.topicEvents)
 
-    // exec commands and create events
-    val eventsStream = commandsStream.transformValues(
-      () => new AuthorCommandHandler,
-      Config.Author.storeSnapshots)
-
-    // events
-    eventsStream.to(Config.Author.topicEvents)
-
-    // snapshots table
-    val snapshotTable = eventsStream
+    // TRANSFORM
+    // events -> snapshots
+    val snapshotTable = inputEventStream
       .filterNot((_, event) => event.message.ignoreForSnapshot)
       .groupByKey
       .aggregate(Author.draft)(
         (_, event, snapshot) => Author(snapshot, event.message)
-      )
-    snapshotTable.toStream.to(Config.Author.topicSnapshots)
+      )(Materialized.as(storeSnapshots))
 
+    // commands -> events
+    // TODO Try to implement this as a JOIN with snapshotTable
+    val eventsStream = inputCommandsStream
+      .transformValues(
+      () => new AuthorCommandHandler,
+      Config.Author.storeSnapshots)
+
+    // OUTPUTS
+    // events stream
+    eventsStream.to(Config.Author.topicEvents)
+    // snapshots table
+    snapshotTable.toStream.to(Config.Author.topicSnapshots)
     // eventsByMsgId table
     val _ = eventsStream
       .map((_, v) => v.msgId.uuid -> v.message)

@@ -23,7 +23,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
     it("should not be possible to exec other commands") {
       val event = target.update("Peter", "Parker")
 
-      val expectedEvent = AuthorError("Entity not created")
+      val expectedEvent = AuthorError("Entity not valid")
       event should be(expectedEvent)
       Author(target, event) should be(target)
     }

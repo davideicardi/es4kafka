@@ -60,7 +60,7 @@ class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorComm
           val events = getOutputEvents(driver)
           events should have size 2
           events should contain ("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
-          events should contain ("spider-man" -> Envelop(cmdId2, AuthorError("Duplicated code")))
+          events should contain ("spider-man" -> Envelop(cmdId2, AuthorError("Entity already created")))
         }
 
         it("generate snapshots only for the first one") {

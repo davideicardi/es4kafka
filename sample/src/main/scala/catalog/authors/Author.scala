@@ -1,20 +1,33 @@
 package catalog.authors
 
+import es4kafka.CommonJsonFormats.EnumJsonConverter
+
 object Author {
   def apply(snapshot: Author, event: AuthorEvent): Author = {
     event match {
       case AuthorCreated(code, firstName, lastName) =>
-        snapshot.copy(code = code, firstName = firstName, lastName = lastName)
+        Author(
+          state = AuthorStates.VALID,
+          code = code, firstName = firstName, lastName = lastName)
       case AuthorUpdated(firstName, lastName) =>
         snapshot.copy(firstName = firstName, lastName = lastName)
       case AuthorDeleted() =>
-        snapshot
+        snapshot.copy(state = AuthorStates.DELETED)
       case AuthorError(_) =>
         snapshot
     }
   }
 
-  def draft: Author = Author("", "", "")
+  def apply(code: String, firstName: String, lastName: String): Author = {
+    Author(AuthorStates.VALID, code, firstName, lastName)
+  }
+
+  def draft: Author = Author()
+}
+
+object AuthorStates extends Enumeration {
+  type AuthorState = Value
+  val DRAFT, VALID, DELETED = Value
 }
 
 /**
@@ -23,11 +36,14 @@ object Author {
  * @param firstName First Name
  * @param lastName Last Name
  */
-case class Author(code: String, firstName: String, lastName: String) {
-  def isDraft: Boolean = this.code == ""
-
+case class Author(
+                   state: AuthorStates.AuthorState = AuthorStates.DRAFT,
+                   code: String = "",
+                   firstName: String = "",
+                   lastName: String = ""
+                 ) {
   def create(code: String, firstName: String, lastName: String): AuthorEvent = {
-    if (!isDraft)
+    if (state == AuthorStates.VALID)
       AuthorError("Entity already created")
     else if (Option(firstName).getOrElse("") == "")
       AuthorError("Invalid firstName")
@@ -39,8 +55,8 @@ case class Author(code: String, firstName: String, lastName: String) {
   }
 
   def update(firstName: String, lastName: String): AuthorEvent = {
-    if (isDraft)
-      AuthorError("Entity not created")
+    if (state != AuthorStates.VALID)
+      AuthorError("Entity not valid")
     else if (Option(firstName).getOrElse("") == "")
       AuthorError("Invalid firstName")
     else if (Option(lastName).getOrElse("") == "")
@@ -50,8 +66,8 @@ case class Author(code: String, firstName: String, lastName: String) {
   }
 
   def delete(): AuthorEvent = {
-    if (isDraft)
-      AuthorError("Entity not created")
+    if (state != AuthorStates.VALID)
+      AuthorError("Entity not valid")
     else
       AuthorDeleted()
   }
@@ -61,5 +77,6 @@ object AuthorJsonFormats {
   import spray.json._
   import spray.json.DefaultJsonProtocol._
   // json serializers
-  implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
+  implicit val AuthorStateFormat: RootJsonFormat[AuthorStates.AuthorState] = new EnumJsonConverter(AuthorStates)
+  implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat4(Author.apply)
 }
