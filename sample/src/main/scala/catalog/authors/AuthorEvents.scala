@@ -5,7 +5,7 @@ import es4kafka.Event
 sealed trait AuthorEvent extends Event
 case class AuthorCreated(code: String, firstName: String, lastName: String) extends AuthorEvent
 case class AuthorUpdated(firstName: String, lastName: String) extends AuthorEvent
-case class AuthorDeleted() extends AuthorEvent
+case class AuthorDeleted(code: String) extends AuthorEvent
 
 case class AuthorError(message: String) extends AuthorEvent {
   override def ignoreForSnapshot: Boolean = true
@@ -19,7 +19,7 @@ object AuthorEventsJsonFormats {
 
   implicit val createdFormat: RootJsonFormat[AuthorCreated] = jsonFormat3(AuthorCreated)
   implicit val updateFormat: RootJsonFormat[AuthorUpdated] = jsonFormat2(AuthorUpdated)
-  implicit val deletedFormat: RootJsonFormat[AuthorDeleted] = jsonFormat0(AuthorDeleted)
+  implicit val deletedFormat: RootJsonFormat[AuthorDeleted] = jsonFormat1(AuthorDeleted)
   implicit val errorFormat: RootJsonFormat[AuthorError] = jsonFormat1(AuthorError)
 
   implicit object AuthorEventFormat extends RootJsonFormat[AuthorEvent] {

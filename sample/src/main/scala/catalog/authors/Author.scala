@@ -1,20 +1,33 @@
 package catalog.authors
 
+import es4kafka.CommonJsonFormats.EnumJsonConverter
+
 object Author {
   def apply(snapshot: Author, event: AuthorEvent): Author = {
     event match {
       case AuthorCreated(code, firstName, lastName) =>
-        snapshot.copy(code = code, firstName = firstName, lastName = lastName)
+        Author(
+          state = AuthorStates.VALID,
+          code = code, firstName = firstName, lastName = lastName)
       case AuthorUpdated(firstName, lastName) =>
         snapshot.copy(firstName = firstName, lastName = lastName)
-      case AuthorDeleted() =>
-        snapshot
+      case AuthorDeleted(_) =>
+        snapshot.copy(state = AuthorStates.DELETED)
       case AuthorError(_) =>
         snapshot
     }
   }
 
-  def draft: Author = Author("", "", "")
+  def apply(code: String, firstName: String, lastName: String): Author = {
+    Author(AuthorStates.VALID, code, firstName, lastName)
+  }
+
+  def draft: Author = Author()
+}
+
+object AuthorStates extends Enumeration {
+  type AuthorState = Value
+  val DRAFT, VALID, DELETED = Value
 }
 
 /**
@@ -23,43 +36,58 @@ object Author {
  * @param firstName First Name
  * @param lastName Last Name
  */
-case class Author(code: String, firstName: String, lastName: String) {
-  def isDraft: Boolean = this.code == ""
-
-  def create(code: String, firstName: String, lastName: String): AuthorEvent = {
-    if (!isDraft)
-      AuthorError("Entity already created")
-    else if (Option(firstName).getOrElse("") == "")
-      AuthorError("Invalid firstName")
-    else if (Option(lastName).getOrElse("") == "")
-      AuthorError("Invalid lastName")
-    else {
-      AuthorCreated(code, firstName, lastName)
+case class Author(
+                   state: AuthorStates.AuthorState = AuthorStates.DRAFT,
+                   code: String = "",
+                   firstName: String = "",
+                   lastName: String = ""
+                 ) {
+  def handle(key: String, command: AuthorCommand): AuthorEvent = {
+    state match {
+      case AuthorStates.DRAFT => draftHandle(key, command)
+      case AuthorStates.VALID => validHandle(command)
+      case AuthorStates.DELETED => deletedHandle(key, command)
     }
   }
 
-  def update(firstName: String, lastName: String): AuthorEvent = {
-    if (isDraft)
-      AuthorError("Entity not created")
-    else if (Option(firstName).getOrElse("") == "")
-      AuthorError("Invalid firstName")
-    else if (Option(lastName).getOrElse("") == "")
-      AuthorError("Invalid lastName")
-    else
-      AuthorUpdated(firstName, lastName)
+  private def draftHandle(key: String, command: AuthorCommand): AuthorEvent = {
+    command match {
+      case CreateAuthor(code, firstName, lastName) =>
+        if (code != key)
+          AuthorError("Key doesn't match")
+        else if (Option(firstName).getOrElse("") == "")
+          AuthorError("Invalid firstName")
+        else if (Option(lastName).getOrElse("") == "")
+          AuthorError("Invalid lastName")
+        else {
+          AuthorCreated(code, firstName, lastName)
+        }
+      case _ => AuthorError("Entity not valid")
+    }
   }
 
-  def delete(): AuthorEvent = {
-    if (isDraft)
-      AuthorError("Entity not created")
-    else
-      AuthorDeleted()
+  private def validHandle(command: AuthorCommand): AuthorEvent = {
+    command match {
+      case UpdateAuthor(firstName, lastName) =>
+        if (Option(firstName).getOrElse("") == "")
+          AuthorError("Invalid firstName")
+        else if (Option(lastName).getOrElse("") == "")
+          AuthorError("Invalid lastName")
+        else
+          AuthorUpdated(firstName, lastName)
+      case DeleteAuthor() => AuthorDeleted(code)
+      case _: CreateAuthor => AuthorError("Entity already created")
+    }
   }
+
+  private def deletedHandle(key: String, command: AuthorCommand): AuthorEvent =
+    draftHandle(key, command)
 }
 
 object AuthorJsonFormats {
   import spray.json._
   import spray.json.DefaultJsonProtocol._
   // json serializers
-  implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat3(Author.apply)
+  implicit val AuthorStateFormat: RootJsonFormat[AuthorStates.AuthorState] = new EnumJsonConverter(AuthorStates)
+  implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat4(Author.apply)
 }

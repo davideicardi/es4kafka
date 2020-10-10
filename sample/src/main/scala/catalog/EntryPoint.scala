@@ -51,6 +51,7 @@ object EntryPoint extends App with EventSourcingApp {
   override protected def shutDown(): Unit = {
     super.shutDown()
     authorsCommandSender.close()
+    schemaRegistry.shutdown()
   }
 }
 
