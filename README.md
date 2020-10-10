@@ -131,6 +131,12 @@ Run the sample app:
 sbt sample/run
 ```
 
+To use `es4kafka` in other project locally you can publish it to the local repository:
+
+```
+sbt publishLocal
+```
+
 HTTP RPC style API are available at: http://localhost:9081/
 
 - `GET /authors/all` - gel all authors
