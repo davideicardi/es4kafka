@@ -8,7 +8,7 @@ import AuthorEventsJsonFormats._
 class AuthorEventsSpec extends AnyFunSpec with Matchers {
   val events: Seq[AuthorEvent] = Seq(
     AuthorCreated("c1", "n1", "l1"),
-    AuthorDeleted(),
+    AuthorDeleted("c1"),
     AuthorError("err1"),
     AuthorUpdated("n1", "l1")
   )

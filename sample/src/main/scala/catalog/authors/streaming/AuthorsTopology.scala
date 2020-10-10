@@ -16,6 +16,7 @@ object AuthorsTopology {
   def defineTopology(streamsBuilder: StreamsBuilder, schemaRegistry: SchemaRegistry): Unit = {
     // avro serializers
     implicit val commandSerde: GenericSerde[Envelop[AuthorCommand]] = new GenericSerde(schemaRegistry)
+    implicit val keyAndCommandSerde: GenericSerde[(String, Envelop[AuthorCommand])] = new GenericSerde(schemaRegistry)
     implicit val envelopEventSerde: GenericSerde[Envelop[AuthorEvent]] = new GenericSerde(schemaRegistry)
     implicit val eventSerde: GenericSerde[AuthorEvent] = new GenericSerde(schemaRegistry)
     implicit val snapshotSerde: GenericSerde[Author] = new GenericSerde(schemaRegistry)
@@ -47,11 +48,16 @@ object AuthorsTopology {
       )(Materialized.as(storeSnapshots))
 
     // commands -> events
-    // TODO Try to implement this as a JOIN with snapshotTable
     val eventsStream = inputCommandsStream
-      .transformValues(
-      () => new AuthorCommandHandler,
-      Config.Author.storeSnapshots)
+      .mapValues((key, cmd) => key -> cmd)
+      .leftJoin(snapshotTable)(
+        (kCmd, snapshotOrNull) => {
+          val (key, cmd) = kCmd
+          val snapshot = Option(snapshotOrNull).getOrElse(Author.draft)
+          val event = snapshot.handle(key, cmd.message)
+          Envelop(cmd.msgId, event)
+        }
+      )
 
     // OUTPUTS
     // events stream

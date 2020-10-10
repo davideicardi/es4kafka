@@ -104,7 +104,7 @@ class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorComm
           val events = getOutputEvents(driver)
           events should have size 3
           events should contain ("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
-          events should contain ("spider-man" -> Envelop(cmdId2, AuthorDeleted()))
+          events should contain ("spider-man" -> Envelop(cmdId2, AuthorDeleted("spider-man")))
           events should contain ("spider-man" -> Envelop(cmdId3, AuthorCreated("spider-man", "Miles", "Morales")))
         }
 

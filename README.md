@@ -39,11 +39,12 @@ NOTE: For the current model this is for sure an over-kill architecture, but the 
 
 ## Microservices
 
-This example can be used as a template for a service/microservice.
+This example can be used as a template for a service/microservice. You can use the `es4kafka` library to share common features.
 
-One important aspect to note is that each microservice should expose a public "interface" to the rest of the world.
+One important aspect to note regarding microservice architecture, is that every microservice should expose a public "interface" to the rest of the world.
 In this case the public interace is composed by:
-- **REST Api**
+
+- **HTTP Api**
     - get author
     - create author
     - get all authors
@@ -104,6 +105,10 @@ Why AVRO?
 
 Why Kaa Schema Registry?
 - Simple [schema registry](https://medium.com/slalom-technology/introduction-to-schema-registry-in-kafka-915ccf06b902) library with Kafka persistence
+- It doesn't require and external service (less infrastructure to maintain)
+- disadvantages:
+    - to be tested in production for potential issues
+    - schemas are available only in Kafka, but it should be easy to create an API to expose it via HTTP or similar
 
 
 ## Usage
@@ -139,13 +144,6 @@ HTTP RPC style API are available at: http://localhost:9081/
 - `POST /authors/delete/{code}` - delete an author
     - request body: `DeleteAuthor` as json
     - response body: event
-
-## TODO
-
-- create topics at startup with correct properties (compact, retention, ...) 
-- review TODO
-- test with multiple partitions/instances
-- add books
 
 ## Credits
 
