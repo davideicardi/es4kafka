@@ -9,11 +9,11 @@ object Author {
         Author(
           state = AuthorStates.VALID,
           code = code, firstName = firstName, lastName = lastName)
-      case AuthorUpdated(firstName, lastName) =>
+      case AuthorUpdated(_, firstName, lastName) =>
         snapshot.copy(firstName = firstName, lastName = lastName)
       case AuthorDeleted(_) =>
         snapshot.copy(state = AuthorStates.DELETED)
-      case AuthorError(_) =>
+      case AuthorError(_, _) =>
         snapshot
     }
   }
@@ -45,38 +45,38 @@ case class Author(
   def handle(key: String, command: AuthorCommand): AuthorEvent = {
     state match {
       case AuthorStates.DRAFT => draftHandle(key, command)
-      case AuthorStates.VALID => validHandle(command)
+      case AuthorStates.VALID => validHandle(key, command)
       case AuthorStates.DELETED => deletedHandle(key, command)
     }
   }
 
   private def draftHandle(key: String, command: AuthorCommand): AuthorEvent = {
     command match {
-      case CreateAuthor(code, firstName, lastName) =>
-        if (code != key)
-          AuthorError("Key doesn't match")
-        else if (Option(firstName).getOrElse("") == "")
-          AuthorError("Invalid firstName")
+      case CreateAuthor(firstName, lastName) =>
+        if (Option(firstName).getOrElse("") == "")
+          AuthorError(key, "Invalid firstName")
         else if (Option(lastName).getOrElse("") == "")
-          AuthorError("Invalid lastName")
+          AuthorError(key, "Invalid lastName")
         else {
-          AuthorCreated(code, firstName, lastName)
+          AuthorCreated(key, firstName, lastName)
         }
-      case _ => AuthorError("Entity not valid")
+      case _ => AuthorError(key, "Entity not valid")
     }
   }
 
-  private def validHandle(command: AuthorCommand): AuthorEvent = {
+  private def validHandle(key: String, command: AuthorCommand): AuthorEvent = {
+    if (code != key)
+      return AuthorError(key, "Key doesn't match")
     command match {
       case UpdateAuthor(firstName, lastName) =>
         if (Option(firstName).getOrElse("") == "")
-          AuthorError("Invalid firstName")
+          AuthorError(key, "Invalid firstName")
         else if (Option(lastName).getOrElse("") == "")
-          AuthorError("Invalid lastName")
+          AuthorError(key, "Invalid lastName")
         else
-          AuthorUpdated(firstName, lastName)
-      case DeleteAuthor() => AuthorDeleted(code)
-      case _: CreateAuthor => AuthorError("Entity already created")
+          AuthorUpdated(key, firstName, lastName)
+      case DeleteAuthor() => AuthorDeleted(key)
+      case _: CreateAuthor => AuthorError(key, "Entity already created")
     }
   }
 

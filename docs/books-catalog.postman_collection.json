@@ -25,13 +25,13 @@
 			"response": []
 		},
 		{
-			"name": "create authors",
+			"name": "create author",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"code\": \"follet\",\n    \"firstName\": \"Ken\",\n    \"lastName\": \"Follet\"\n}",
+					"raw": "{\n    \"firstName\": \"Luke\",\n    \"lastName\": \"Skywalker\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -39,7 +39,7 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:9081/authors/create",
+					"raw": "http://localhost:9081/authors/commands/CreateAuthor/luke",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -47,7 +47,9 @@
 					"port": "9081",
 					"path": [
 						"authors",
-						"create"
+						"commands",
+						"CreateAuthor",
+						"luke"
 					]
 				}
 			},
@@ -56,11 +58,11 @@
 		{
 			"name": "update author",
 			"request": {
-				"method": "PUT",
+				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"firstName\": \"Umberto\",\n    \"lastName\": \"Eco\"\n}",
+					"raw": "{\n    \"firstName\": \"Luke\",\n    \"lastName\": \"Skywalker\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -68,7 +70,7 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:9081/authors/update/eco",
+					"raw": "http://localhost:9081/authors/commands/UpdateAuthor/luke",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -76,8 +78,9 @@
 					"port": "9081",
 					"path": [
 						"authors",
-						"update",
-						"eco"
+						"commands",
+						"UpdateAuthor",
+						"luke"
 					]
 				}
 			},
@@ -90,7 +93,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"code\": \"follet\",\n    \"firstName\": \"Ken\",\n    \"lastName\": \"Follet\"\n}",
+					"raw": "{\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -98,7 +101,7 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:9081/authors/delete/follet",
+					"raw": "http://localhost:9081/authors/commands/DeleteAuthor/king",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -106,8 +109,9 @@
 					"port": "9081",
 					"path": [
 						"authors",
-						"delete",
-						"follet"
+						"commands",
+						"DeleteAuthor",
+						"king"
 					]
 				}
 			},
@@ -140,7 +144,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:9081/authors/events/one/d4a9fde0-6530-4876-a1db-5ee10e3936d1",
+					"raw": "http://localhost:9081/authors/events/one/f03bc9a7-b437-4714-9fd2-743b39235f0c",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -150,7 +154,7 @@
 						"authors",
 						"events",
 						"one",
-						"d4a9fde0-6530-4876-a1db-5ee10e3936d1"
+						"f03bc9a7-b437-4714-9fd2-743b39235f0c"
 					]
 				}
 			},
