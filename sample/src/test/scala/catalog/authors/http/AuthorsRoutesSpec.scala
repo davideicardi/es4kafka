@@ -40,6 +40,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
       (stateReader.fetchAll(_: Boolean)).expects(false).returning(Future(expectedAuthors)).once()
 
       Get("/authors/all") ~> targetRoute(stateReader = stateReader) ~> check {
+        response.status should be (StatusCodes.OK)
         responseAs[Seq[Author]] shouldEqual expectedAuthors
       }
     }
@@ -50,6 +51,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
       (stateReader.fetchOne(_: String)).expects("code1").returning(Future(Some(expectedAuthor))).once()
 
       Get("/authors/one/code1") ~> targetRoute(stateReader = stateReader) ~> check {
+        response.status should be (StatusCodes.OK)
         responseAs[Author] shouldEqual expectedAuthor
       }
     }
@@ -68,8 +70,9 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
       val msgId = MsgId.random()
       mockCmdSend(cmdSender, msgId)
 
-      val body = CreateAuthor("code1", "name1", "last1")
-      Post("/authors/create", body) ~> targetRoute(commandSender = cmdSender) ~> check {
+      val body = CreateAuthor("name1", "last1")
+      Post("/authors/commands/CreateAuthor/code1", body) ~> targetRoute(commandSender = cmdSender) ~> check {
+        response.status should be (StatusCodes.OK)
         responseAs[MsgId] should be(msgId)
       }
     }
@@ -80,7 +83,8 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
       mockCmdSend(cmdSender, msgId)
 
       val body = UpdateAuthor("name1", "last1")
-      Post("/authors/update/code1", body) ~> targetRoute(commandSender = cmdSender) ~> check {
+      Post("/authors/commands/UpdateAuthor/code1", body) ~> targetRoute(commandSender = cmdSender) ~> check {
+        response.status should be (StatusCodes.OK)
         responseAs[MsgId] should be(msgId)
       }
     }
@@ -90,7 +94,9 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
       val msgId = MsgId.random()
       mockCmdSend(cmdSender, msgId)
 
-      Post("/authors/delete/code1") ~> targetRoute(commandSender = cmdSender) ~> check {
+      val body = DeleteAuthor()
+      Post("/authors/commands/DeleteAuthor/code1", body) ~> targetRoute(commandSender = cmdSender) ~> check {
+        response.status should be (StatusCodes.OK)
         responseAs[MsgId] should be(msgId)
       }
     }
@@ -98,11 +104,12 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
     it("should get an author event") {
       val cmdSender = mock[CommandSender[AuthorCommand, AuthorEvent]]
       val msgId = MsgId.random()
-      val expectedEvent = AuthorUpdated("name1", "lastName1")
-      mockCmdWait(cmdSender, msgId, Some(expectedEvent))
+      val returningEvent = AuthorUpdated("code1", "name1", "lastName1")
+      mockCmdWait(cmdSender, msgId, Some(returningEvent))
 
       Get("/authors/events/one/" + msgId.uuid.toString) ~> targetRoute(commandSender = cmdSender) ~> check {
-        responseAs[AuthorEvent] should be(expectedEvent)
+        response.status should be (StatusCodes.OK)
+        responseAs[AuthorEvent] should be(returningEvent)
       }
     }
 

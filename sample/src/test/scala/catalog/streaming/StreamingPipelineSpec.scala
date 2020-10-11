@@ -27,8 +27,8 @@ class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorComm
       runTopology { driver =>
         val commandTopic = createCmdTopic(driver)
         val (cmdId1, cmdId2, cmdId3) = (MsgId.random(), MsgId.random(), MsgId.random())
-        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("spider-man", "Peter", "Parker")))
-        commandTopic.pipeInput("superman", Envelop(cmdId2, CreateAuthor("superman", "Clark", "Kent")))
+        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("Peter", "Parker")))
+        commandTopic.pipeInput("superman", Envelop(cmdId2, CreateAuthor("Clark", "Kent")))
         commandTopic.pipeInput("spider-man", Envelop(cmdId3, UpdateAuthor("Miles", "Morales")))
 
         it("should generate events") {
@@ -36,7 +36,7 @@ class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorComm
           events should have size 3
           events should contain ("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
           events should contain ("superman" -> Envelop(cmdId2, AuthorCreated("superman", "Clark", "Kent")))
-          events should contain ("spider-man" -> Envelop(cmdId3, AuthorUpdated("Miles", "Morales")))
+          events should contain ("spider-man" -> Envelop(cmdId3, AuthorUpdated("spider-man", "Miles", "Morales")))
         }
 
         it("should generate snapshots") {
@@ -53,14 +53,14 @@ class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorComm
         val commandTopic = createCmdTopic(driver)
 
         val (cmdId1, cmdId2) = (MsgId.random(), MsgId.random())
-        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("spider-man", "Peter", "Parker")))
-        commandTopic.pipeInput("spider-man", Envelop(cmdId2, CreateAuthor("spider-man", "Miles", "Morales")))
+        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("Peter", "Parker")))
+        commandTopic.pipeInput("spider-man", Envelop(cmdId2, CreateAuthor("Miles", "Morales")))
 
         it("should generate events only for the first one and one error") {
           val events = getOutputEvents(driver)
           events should have size 2
           events should contain ("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
-          events should contain ("spider-man" -> Envelop(cmdId2, AuthorError("Entity already created")))
+          events should contain ("spider-man" -> Envelop(cmdId2, AuthorError("spider-man", "Entity already created")))
         }
 
         it("generate snapshots only for the first one") {
@@ -71,34 +71,14 @@ class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorComm
       }
     }
 
-    describe("when adding an author with a code different than the key") {
-      runTopology { driver =>
-        val commandTopic = createCmdTopic(driver)
-
-        val cmdId1 = MsgId.random()
-        commandTopic.pipeInput("not-matching", Envelop(cmdId1, CreateAuthor("spider-man", "Peter", "Parker")))
-
-        it("should generate an error event") {
-          val events = getOutputEvents(driver)
-          events should have size 1
-          events should contain ("not-matching" -> Envelop(cmdId1, AuthorError("Key doesn't match")))
-        }
-
-        it("should not generate snapshots") {
-          val snapshots = getOutputSnapshots(driver)
-          snapshots should have size 0
-        }
-      }
-    }
-
     describe("when add an author, delete it and add it again") {
       runTopology { driver =>
         val commandTopic = createCmdTopic(driver)
 
         val (cmdId1, cmdId2, cmdId3) = (MsgId.random(), MsgId.random(), MsgId.random())
-        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("spider-man", "Peter", "Parker")))
+        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("Peter", "Parker")))
         commandTopic.pipeInput("spider-man", Envelop(cmdId2, DeleteAuthor()))
-        commandTopic.pipeInput("spider-man", Envelop(cmdId3, CreateAuthor("spider-man", "Miles", "Morales")))
+        commandTopic.pipeInput("spider-man", Envelop(cmdId3, CreateAuthor("Miles", "Morales")))
 
         it("should generate events") {
           val events = getOutputEvents(driver)

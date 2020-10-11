@@ -8,6 +8,7 @@ import es4kafka._
 import es4kafka.http.{RouteController, RpcActions}
 import es4kafka.streaming.SnapshotStateReader
 import spray.json.DefaultJsonProtocol._
+import spray.json.RootJsonReader
 
 import scala.concurrent._
 
@@ -28,26 +29,12 @@ class AuthorsRoutes(
     concat(
       post {
         concat(
-          path(httpPrefix / create) {
-            entity(as[CreateAuthor]) { model =>
-              val command = CreateAuthor(model.code, model.firstName, model.lastName)
+          path(httpPrefix / commands / Segment / Segment) { (commandType, key) =>
+            implicit val cmdFormat: RootJsonReader[AuthorCommand] = commandFormat(commandType)
+            entity(as[AuthorCommand]) { command =>
               complete {
-                commandSender.send(command.code, command)
+                commandSender.send(key, command)
               }
-            }
-          },
-          path(httpPrefix / update / Segment) { code =>
-            entity(as[UpdateAuthor]) { model =>
-              val command = UpdateAuthor(model.firstName, model.lastName)
-              complete {
-                commandSender.send(code, command)
-              }
-            }
-          },
-          path(httpPrefix / delete / Segment) { code =>
-            val command = DeleteAuthor()
-            complete {
-              commandSender.send(code, command)
             }
           },
         )
