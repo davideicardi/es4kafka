@@ -9,7 +9,7 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters._
 
-trait EventSourcingTopologyTest[K, VCommand, VEvent, VSnapshot]
+trait EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent, VSnapshot]
   extends AnyFunSpec with Matchers {
 
   val target: StreamingPipelineBase
@@ -26,6 +26,12 @@ trait EventSourcingTopologyTest[K, VCommand, VEvent, VSnapshot]
       keySerde.serializer(),
       commandSerde.serializer(),
     )
+  }
+
+  def pipeInputCommand(inputCommandTopic: TestInputTopic[K, Envelop[VCommand]], command: VCommand): MsgId = {
+    val msgId = MsgId.random()
+    inputCommandTopic.pipeInput(command.key, Envelop(msgId, command))
+    msgId
   }
 
   def createEventTopic(driver: TopologyTestDriver): TestOutputTopic[K, Envelop[VEvent]] = {

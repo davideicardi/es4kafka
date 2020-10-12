@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import catalog.authors.http.AuthorsRoutes
 import catalog.authors.{Author, AuthorCommand, AuthorEvent, AuthorEventsJsonFormats, AuthorJsonFormats}
 import com.davideicardi.kaa.KaaSchemaRegistry
+import com.davideicardi.kaa.kafka.GenericSerde
 import es4kafka._
 import es4kafka.http.{MetadataRoutes, RouteController}
 import es4kafka.streaming.{DefaultSnapshotsStateReader, MetadataService}
@@ -22,14 +23,15 @@ object EntryPoint extends App with EventSourcingApp {
   val metadataService = new MetadataService(streams, hostInfoService)
 
   // Authors
-  val authorsCommandSender = new DefaultCommandSender[AuthorCommand, AuthorEvent](
+  val authorsCommandSender = new DefaultCommandSender[String, AuthorCommand, AuthorEvent](
     system,
-    schemaRegistry,
     serviceConfig,
     Config.Author,
     metadataService,
     streams,
-    AuthorEventsJsonFormats.AuthorEventFormat
+    Serdes.String(),
+    new GenericSerde[Envelop[AuthorCommand]](schemaRegistry),
+    AuthorEventsJsonFormats.AuthorEventFormat,
   )
   val authorsStateReader = new DefaultSnapshotsStateReader[String, Author](
     system,

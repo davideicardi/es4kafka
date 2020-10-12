@@ -9,46 +9,44 @@ import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.kafka.ProducerSettings
 import akka.kafka.scaladsl.SendProducer
-import com.davideicardi.kaa.SchemaRegistry
-import com.davideicardi.kaa.kafka.GenericSerde
-import com.sksamuel.avro4s.{Decoder, Encoder, SchemaFor}
 import es4kafka.http.RpcActions
 import es4kafka.streaming.{MetadataService, MetadataStoreInfo, StateStores}
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.serialization.Serdes
+import org.apache.kafka.common.serialization.{Serde, Serdes}
 import org.apache.kafka.streams.KafkaStreams
-import org.apache.kafka.streams.scala.Serdes.String
 import org.apache.kafka.streams.state.QueryableStoreTypes
 import spray.json._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class DefaultCommandSender[TCommand >: Null : SchemaFor : Encoder : Decoder, TEvent](
+class DefaultCommandSender[TKey, TCommand <: Command[TKey], TEvent <: Event](
                                 actorSystem: ActorSystem,
-                                schemaRegistry: SchemaRegistry,
                                 serviceConfig: ServiceConfig,
                                 aggregateConfig: AggregateConfig,
                                 metadataService: MetadataService,
                                 streams: KafkaStreams,
+                                keyAvroSerde: Serde[TKey],
+                                commandAvroSerde: Serde[Envelop[TCommand]],
                                 eventJsonFormat: RootJsonFormat[TEvent],
-                              ) extends CommandSender[TCommand, TEvent] {
-  private implicit val commandSerde: GenericSerde[Envelop[TCommand]] = new GenericSerde(schemaRegistry)
+                              ) extends CommandSender[TKey, TCommand, TEvent] {
+  private implicit val keySerde: Serde[TKey] = keyAvroSerde
+  private implicit val commandSerde: Serde[Envelop[TCommand]] = commandAvroSerde
   private implicit val entityJsonFormat: RootJsonFormat[TEvent] = eventJsonFormat
 
   private implicit val system: ActorSystem = actorSystem
   private implicit val executionContext: ExecutionContext = system.dispatcher
 
-  private val producerSettings = ProducerSettings(actorSystem, String.serializer(), commandSerde.serializer())
+  private val producerSettings = ProducerSettings(actorSystem, keySerde.serializer(), commandSerde.serializer())
     .withBootstrapServers(serviceConfig.kafka_brokers)
   private val producer = SendProducer(producerSettings)(actorSystem)
   private val msgIdSerde = Serdes.UUID()
 
-  def send(key: String, command: TCommand): Future[MsgId] = {
+  def send(command: TCommand): Future[MsgId] = {
     val msgId = MsgId.random()
     val envelop = Envelop(msgId, command)
     producer
-      .send(new ProducerRecord(aggregateConfig.topicCommands, key, envelop))
+      .send(new ProducerRecord(aggregateConfig.topicCommands, command.key, envelop))
       .map(_ => msgId)
   }
 

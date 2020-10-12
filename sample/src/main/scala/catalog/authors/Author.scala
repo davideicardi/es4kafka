@@ -42,46 +42,46 @@ case class Author(
                    firstName: String = "",
                    lastName: String = ""
                  ) {
-  def handle(key: String, command: AuthorCommand): AuthorEvent = {
+  def handle(command: AuthorCommand): AuthorEvent = {
     state match {
-      case AuthorStates.DRAFT => draftHandle(key, command)
-      case AuthorStates.VALID => validHandle(key, command)
-      case AuthorStates.DELETED => deletedHandle(key, command)
+      case AuthorStates.DRAFT => draftHandle(command)
+      case AuthorStates.VALID => validHandle(command)
+      case AuthorStates.DELETED => deletedHandle(command)
     }
   }
 
-  private def draftHandle(key: String, command: AuthorCommand): AuthorEvent = {
+  private def draftHandle(command: AuthorCommand): AuthorEvent = {
     command match {
-      case CreateAuthor(firstName, lastName) =>
+      case CreateAuthor(code, firstName, lastName) =>
         if (Option(firstName).getOrElse("") == "")
-          AuthorError(key, "Invalid firstName")
+          AuthorError(command.code, "Invalid firstName")
         else if (Option(lastName).getOrElse("") == "")
-          AuthorError(key, "Invalid lastName")
+          AuthorError(command.code, "Invalid lastName")
         else {
-          AuthorCreated(key, firstName, lastName)
+          AuthorCreated(code, firstName, lastName)
         }
-      case _ => AuthorError(key, "Entity not valid")
+      case _ => AuthorError(command.code, "Entity not valid")
     }
   }
 
-  private def validHandle(key: String, command: AuthorCommand): AuthorEvent = {
-    if (code != key)
-      return AuthorError(key, "Key doesn't match")
+  private def validHandle(command: AuthorCommand): AuthorEvent = {
+    if (this.code != command.code)
+      return AuthorError(this.code, "Code doesn't match")
     command match {
-      case UpdateAuthor(firstName, lastName) =>
+      case UpdateAuthor(_, firstName, lastName) =>
         if (Option(firstName).getOrElse("") == "")
-          AuthorError(key, "Invalid firstName")
+          AuthorError(command.code, "Invalid firstName")
         else if (Option(lastName).getOrElse("") == "")
-          AuthorError(key, "Invalid lastName")
+          AuthorError(command.code, "Invalid lastName")
         else
-          AuthorUpdated(key, firstName, lastName)
-      case DeleteAuthor() => AuthorDeleted(key)
-      case _: CreateAuthor => AuthorError(key, "Entity already created")
+          AuthorUpdated(command.code, firstName, lastName)
+      case DeleteAuthor(_) => AuthorDeleted(command.code)
+      case _: CreateAuthor => AuthorError(command.code, "Entity already created")
     }
   }
 
-  private def deletedHandle(key: String, command: AuthorCommand): AuthorEvent =
-    draftHandle(key, command)
+  private def deletedHandle(command: AuthorCommand): AuthorEvent =
+    draftHandle(command)
 }
 
 object AuthorJsonFormats {

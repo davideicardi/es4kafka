@@ -23,7 +23,7 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
   import CommonJsonFormats._
 
   private def targetRoute(
-                         commandSender: CommandSender[AuthorCommand, AuthorEvent] = mock[CommandSender[AuthorCommand, AuthorEvent]],
+                         commandSender: CommandSender[String, AuthorCommand, AuthorEvent] = mock[CommandSender[String, AuthorCommand, AuthorEvent]],
                          stateReader: SnapshotStateReader[String, Author] = mock[SnapshotStateReader[String, Author]],
                          ) = {
     Route.seal {
@@ -66,46 +66,42 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
     }
 
     it("should create an author") {
-      val cmdSender = mock[CommandSender[AuthorCommand, AuthorEvent]]
       val msgId = MsgId.random()
-      mockCmdSend(cmdSender, msgId)
+      val cmdSender = mockCmdSend(msgId)
 
-      val body = CreateAuthor("name1", "last1")
-      Post("/authors/commands/CreateAuthor/code1", body) ~> targetRoute(commandSender = cmdSender) ~> check {
+      val body: AuthorCommand = CreateAuthor("code1", "name1", "last1")
+      Post("/authors/commands", body) ~> targetRoute(commandSender = cmdSender) ~> check {
         response.status should be (StatusCodes.OK)
         responseAs[MsgId] should be(msgId)
       }
     }
 
     it("should update an author") {
-      val cmdSender = mock[CommandSender[AuthorCommand, AuthorEvent]]
       val msgId = MsgId.random()
-      mockCmdSend(cmdSender, msgId)
+      val cmdSender = mockCmdSend(msgId)
 
-      val body = UpdateAuthor("name1", "last1")
-      Post("/authors/commands/UpdateAuthor/code1", body) ~> targetRoute(commandSender = cmdSender) ~> check {
+      val body: AuthorCommand = UpdateAuthor("code1", "name1", "last1")
+      Post("/authors/commands", body) ~> targetRoute(commandSender = cmdSender) ~> check {
         response.status should be (StatusCodes.OK)
         responseAs[MsgId] should be(msgId)
       }
     }
 
     it("should delete an author") {
-      val cmdSender = mock[CommandSender[AuthorCommand, AuthorEvent]]
       val msgId = MsgId.random()
-      mockCmdSend(cmdSender, msgId)
+      val cmdSender = mockCmdSend(msgId)
 
-      val body = DeleteAuthor()
-      Post("/authors/commands/DeleteAuthor/code1", body) ~> targetRoute(commandSender = cmdSender) ~> check {
+      val body: AuthorCommand = DeleteAuthor("code1")
+      Post("/authors/commands", body) ~> targetRoute(commandSender = cmdSender) ~> check {
         response.status should be (StatusCodes.OK)
         responseAs[MsgId] should be(msgId)
       }
     }
 
     it("should get an author event") {
-      val cmdSender = mock[CommandSender[AuthorCommand, AuthorEvent]]
       val msgId = MsgId.random()
       val returningEvent = AuthorUpdated("code1", "name1", "lastName1")
-      mockCmdWait(cmdSender, msgId, Some(returningEvent))
+      val cmdSender = mockCmdWait(msgId, Some(returningEvent))
 
       Get("/authors/events/one/" + msgId.uuid.toString) ~> targetRoute(commandSender = cmdSender) ~> check {
         response.status should be (StatusCodes.OK)
@@ -114,9 +110,8 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
     }
 
     it("should get 404 for a not existing author event") {
-      val cmdSender = mock[CommandSender[AuthorCommand, AuthorEvent]]
       val msgId = MsgId.random()
-      mockCmdWait(cmdSender, msgId, None)
+      val cmdSender = mockCmdWait(msgId, None)
 
       Get("/authors/events/one/" + msgId.uuid.toString) ~> targetRoute(commandSender = cmdSender) ~> check {
         response.status should be (StatusCodes.NotFound)
@@ -125,22 +120,26 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
   }
 
   private def mockCmdSend(
-                           cmdSender: CommandSender[AuthorCommand, AuthorEvent],
-                           returningMsgId: MsgId,
-                           expectedKey: String = "code1"
-                         ): Unit = {
-    val _ = (cmdSender.send(_: String, _: AuthorCommand))
-      .expects(expectedKey, *)
+                           returningMsgId: MsgId
+                         ): CommandSender[String, AuthorCommand, AuthorEvent] = {
+    val cmdSender = mock[CommandSender[String, AuthorCommand, AuthorEvent]]
+    val _ = (cmdSender.send(_: AuthorCommand))
+      .expects(*)
       .returning(Future(returningMsgId)).once()
+
+    cmdSender
   }
 
   private def mockCmdWait(
-                           cmdSender: CommandSender[AuthorCommand, AuthorEvent],
                            expectedMsgId: MsgId,
                            returningEvent: Option[AuthorEvent]
-                         ): Unit = {
+                         ): CommandSender[String, AuthorCommand, AuthorEvent] = {
+    val cmdSender = mock[CommandSender[String, AuthorCommand, AuthorEvent]]
+
     val _ = (cmdSender.wait(_: MsgId, _: Int, _: FiniteDuration))
       .expects(expectedMsgId, *, *)
       .returning(Future(returningEvent)).once()
+
+    cmdSender
   }
 }

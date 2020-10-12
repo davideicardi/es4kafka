@@ -8,12 +8,11 @@ import es4kafka._
 import es4kafka.http.{RouteController, RpcActions}
 import es4kafka.streaming.SnapshotStateReader
 import spray.json.DefaultJsonProtocol._
-import spray.json.RootJsonReader
 
 import scala.concurrent._
 
 class AuthorsRoutes(
-                     commandSender: CommandSender[AuthorCommand, AuthorEvent],
+                     commandSender: CommandSender[String, AuthorCommand, AuthorEvent],
                      authorStateReader: SnapshotStateReader[String, Author],
                      aggregateConfig: AggregateConfig,
                    ) extends RouteController {
@@ -29,11 +28,10 @@ class AuthorsRoutes(
     concat(
       post {
         concat(
-          path(httpPrefix / commands / Segment / Segment) { (commandType, key) =>
-            implicit val cmdFormat: RootJsonReader[AuthorCommand] = commandFormat(commandType)
+          path(httpPrefix / commands ) {
             entity(as[AuthorCommand]) { command =>
               complete {
-                commandSender.send(key, command)
+                commandSender.send(command)
               }
             }
           },

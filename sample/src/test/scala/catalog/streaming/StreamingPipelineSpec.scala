@@ -26,10 +26,9 @@ class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorComm
     describe("when sending various commands") {
       runTopology { driver =>
         val commandTopic = createCmdTopic(driver)
-        val (cmdId1, cmdId2, cmdId3) = (MsgId.random(), MsgId.random(), MsgId.random())
-        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("Peter", "Parker")))
-        commandTopic.pipeInput("superman", Envelop(cmdId2, CreateAuthor("Clark", "Kent")))
-        commandTopic.pipeInput("spider-man", Envelop(cmdId3, UpdateAuthor("Miles", "Morales")))
+        val cmdId1 = pipeInputCommand(commandTopic, CreateAuthor("spider-man", "Peter", "Parker"))
+        val cmdId2 = pipeInputCommand(commandTopic, CreateAuthor("superman", "Clark", "Kent"))
+        val cmdId3 = pipeInputCommand(commandTopic, UpdateAuthor("spider-man", "Miles", "Morales"))
 
         it("should generate events") {
           val events = getOutputEvents(driver)
@@ -52,9 +51,8 @@ class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorComm
       runTopology { driver =>
         val commandTopic = createCmdTopic(driver)
 
-        val (cmdId1, cmdId2) = (MsgId.random(), MsgId.random())
-        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("Peter", "Parker")))
-        commandTopic.pipeInput("spider-man", Envelop(cmdId2, CreateAuthor("Miles", "Morales")))
+        val cmdId1 = pipeInputCommand(commandTopic, CreateAuthor("spider-man", "Peter", "Parker"))
+        val cmdId2 = pipeInputCommand(commandTopic, CreateAuthor("spider-man", "Miles", "Morales"))
 
         it("should generate events only for the first one and one error") {
           val events = getOutputEvents(driver)
@@ -75,10 +73,9 @@ class StreamingPipelineSpec extends EventSourcingTopologyTest[String, AuthorComm
       runTopology { driver =>
         val commandTopic = createCmdTopic(driver)
 
-        val (cmdId1, cmdId2, cmdId3) = (MsgId.random(), MsgId.random(), MsgId.random())
-        commandTopic.pipeInput("spider-man", Envelop(cmdId1, CreateAuthor("Peter", "Parker")))
-        commandTopic.pipeInput("spider-man", Envelop(cmdId2, DeleteAuthor()))
-        commandTopic.pipeInput("spider-man", Envelop(cmdId3, CreateAuthor("Miles", "Morales")))
+        val cmdId1 = pipeInputCommand(commandTopic, CreateAuthor("spider-man", "Peter", "Parker"))
+        val cmdId2 = pipeInputCommand(commandTopic, DeleteAuthor("spider-man"))
+        val cmdId3 = pipeInputCommand(commandTopic, CreateAuthor("spider-man", "Miles", "Morales"))
 
         it("should generate events") {
           val events = getOutputEvents(driver)

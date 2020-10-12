@@ -141,9 +141,16 @@ HTTP RPC style API are available at: http://localhost:9081/
 
 - `GET /authors/all` - gel all authors
 - `GET /authors/one/{code}` - gel one author
-- `POST /authors/commands/{commandType}` - send a command
-    - `commandType`: `CreateAuthor`/`UpdateAuthor`/`DeleteAuthor` 
+- `POST /authors/commands` - send a command
     - request body: `CreateAuthor`/`UpdateAuthor`/`DeleteAuthor` class as json
+    ```
+    {
+        "_type": "CreateAuthor",
+        "code": "luke",
+        "firstName": "Luke",
+        "lastName": "Skywalker"
+    }
+    ```
     - response body: event
 
 (see PostMan collection inside `./docs/books-catalog.postman_collection`)
