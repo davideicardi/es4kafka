@@ -30,7 +30,7 @@ services:
      - "2181:2181"
 
   kafdrop:
-    image: davideicardi/kafdrop-kaa
+    image: davideicardi/kafdrop-kaa:3.28.0-SNAPSHOT
     ports:
      - "9000:9000"
     environment:
