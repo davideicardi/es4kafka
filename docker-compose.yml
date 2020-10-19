@@ -17,7 +17,7 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       # TODO this should be removed when topics are automatically created
-      KAFKA_CREATE_TOPICS: 'catalog.authors.commands:1:1,catalog.authors.events:1:1'
+      KAFKA_CREATE_TOPICS: 'catalog.authors.commands:1:1,catalog.authors.events:1:1,catalog.books.commands:1:1,catalog.books.events:1:1'
       # TODO put to false when topic are created automatically?
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_DELETE_TOPIC_ENABLE: 'true'

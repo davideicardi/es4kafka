@@ -1,8 +1,12 @@
 package catalog
 
+import java.util.UUID
+
 import akka.actor.ActorSystem
 import catalog.authors.http.AuthorsRoutes
-import catalog.authors.{Author, AuthorCommand, AuthorEvent, AuthorEventsJsonFormats, AuthorJsonFormats}
+import catalog.authors._
+import catalog.books.http.BooksRoutes
+import catalog.books._
 import com.davideicardi.kaa.KaaSchemaRegistry
 import com.davideicardi.kaa.kafka.GenericSerde
 import es4kafka._
@@ -43,9 +47,32 @@ object EntryPoint extends App with EventSourcingApp {
   )
   val authorsRoutes = new AuthorsRoutes(authorsCommandSender, authorsStateReader, Config.Author)
 
+  // Books
+  val booksCommandSender = new DefaultCommandSender[UUID, BookCommand, BookEvent](
+    system,
+    serviceConfig,
+    Config.Book,
+    metadataService,
+    streams,
+    Serdes.UUID(),
+    new GenericSerde[Envelop[BookCommand]](schemaRegistry),
+    BookEventsJsonFormats.BookEventFormat,
+  )
+  val booksStateReader = new DefaultSnapshotsStateReader[UUID, Book](
+    system,
+    metadataService,
+    streams,
+    Config.Book,
+    Serdes.UUID(),
+    BookJsonFormats.BookFormat,
+  )
+  val booksRoutes = new BooksRoutes(booksCommandSender, booksStateReader, Config.Book)
+
+
   val controllers: Seq[RouteController] = Seq(
     new MetadataRoutes(metadataService),
-    authorsRoutes
+    authorsRoutes,
+    booksRoutes,
   )
 
   run()
@@ -53,6 +80,7 @@ object EntryPoint extends App with EventSourcingApp {
   override protected def shutDown(): Unit = {
     super.shutDown()
     authorsCommandSender.close()
+    booksCommandSender.close()
     schemaRegistry.shutdown()
   }
 }

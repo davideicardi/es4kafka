@@ -10,4 +10,9 @@ object Config extends ServiceConfig {
     val aggregateName: String = "authors"
     val serviceName: String = applicationId
   }
+
+  object Book extends AggregateConfig {
+    val aggregateName: String = "books"
+    val serviceName: String = applicationId
+  }
 }

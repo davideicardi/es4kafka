@@ -1,6 +1,7 @@
 package catalog
 
 import catalog.authors.streaming.AuthorsTopology
+import catalog.books.streaming.BooksTopology
 import com.davideicardi.kaa.SchemaRegistry
 import es4kafka.ServiceConfig
 import es4kafka.streaming.StreamingPipelineBase
@@ -16,6 +17,9 @@ class StreamingPipeline(
     val streamBuilder = new StreamsBuilder
 
     AuthorsTopology
+      .defineTopology(streamBuilder, schemaRegistry)
+
+    BooksTopology
       .defineTopology(streamBuilder, schemaRegistry)
 
     streamBuilder.build()

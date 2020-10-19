@@ -90,4 +90,4 @@ lazy val sample = (project in file("sample"))
   .dependsOn(es4kafka, es4kafkaTest % "test")
 
 lazy val root = (project in file("."))
-  .aggregate(es4kafka, sample)
+  .aggregate(es4kafka, sample, es4kafkaTest)

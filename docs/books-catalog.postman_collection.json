@@ -6,6 +6,260 @@
 	},
 	"item": [
 		{
+			"name": "authors",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"_type\": \"CreateAuthor\",\n    \"code\": \"luke\",\n    \"firstName\": \"Luke\",\n    \"lastName\": \"Skywalker\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:9081/authors/commands",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"authors",
+								"commands"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"_type\": \"UpdateAuthor\",\n    \"code\": \"luke\",\n    \"firstName\": \"Lukeeee\",\n    \"lastName\": \"Skywalker\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:9081/authors/commands",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"authors",
+								"commands"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"_type\": \"DeleteAuthor\",\n    \"code\": \"luke\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:9081/authors/commands",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"authors",
+								"commands"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9081/authors/one/luke",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"authors",
+								"one",
+								"luke"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get event",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9081/authors/events/one/f03bc9a7-b437-4714-9fd2-743b39235f0c",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"authors",
+								"events",
+								"one",
+								"f03bc9a7-b437-4714-9fd2-743b39235f0c"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9081/authors/all",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"authors",
+								"all"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "books",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"_type\": \"CreateBook\",\n    \"id\": \"c7ffa160-ce82-48e5-a8e8-846a18433d09\",\n    \"title\": \"Harry Potter\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:9081/books/commands",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"books",
+								"commands"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9081/books/one/c7ffa160-ce82-48e5-a8e8-846a18433d09",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"books",
+								"one",
+								"c7ffa160-ce82-48e5-a8e8-846a18433d09"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get event",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9081/books/events/one/da767586-3d16-4144-85d8-4fb995ae0d22",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"books",
+								"events",
+								"one",
+								"da767586-3d16-4144-85d8-4fb995ae0d22"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9081/books/all",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"books",
+								"all"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
 			"name": "kafka-streams-instances",
 			"request": {
 				"method": "GET",
@@ -19,156 +273,6 @@
 					"port": "9081",
 					"path": [
 						"instances"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "create author",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"_type\": \"CreateAuthor\",\n    \"code\": \"luke\",\n    \"firstName\": \"Luke\",\n    \"lastName\": \"Skywalker\"\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:9081/authors/commands",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "9081",
-					"path": [
-						"authors",
-						"commands"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "update author",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"_type\": \"UpdateAuthor\",\n    \"code\": \"luke\",\n    \"firstName\": \"Lukeeee\",\n    \"lastName\": \"Skywalker\"\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:9081/authors/commands",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "9081",
-					"path": [
-						"authors",
-						"commands"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "delete author",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"_type\": \"DeleteAuthor\",\n    \"code\": \"luke\"\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:9081/authors/commands",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "9081",
-					"path": [
-						"authors",
-						"commands"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "get author",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:9081/authors/one/follet",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "9081",
-					"path": [
-						"authors",
-						"one",
-						"follet"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "get author event",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:9081/authors/events/one/f03bc9a7-b437-4714-9fd2-743b39235f0c",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "9081",
-					"path": [
-						"authors",
-						"events",
-						"one",
-						"f03bc9a7-b437-4714-9fd2-743b39235f0c"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "get all authors",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:9081/authors/all",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "9081",
-					"path": [
-						"authors",
-						"all"
 					]
 				}
 			},
