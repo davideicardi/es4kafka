@@ -59,16 +59,22 @@ lazy val es4kafka = (project in file("es4kafka"))
       // kafka streams
       "org.apache.kafka" %% "kafka-streams-scala" % kafkaVersion,
       "org.apache.kafka" % "kafka-clients" % kafkaVersion,
+      // akka
+      "com.typesafe.akka" %% "akka-actor" % AkkaVersion,
       // rest api
       "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
       "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % AkkaHttpVersion,
       // rest api kafka producer
-      "com.typesafe.akka" %% "akka-stream-kafka" % "2.0.5",
+      "com.typesafe.akka" %% "akka-stream-kafka" % "2.0.5"
+        exclude("com.typesafe.akka", "akka-stream_2.13")
+        exclude("org.apache.kafka", "kafka-clients"),
       // avro schema registry
-      "com.davideicardi" %% "kaa" % "0.3.4",
+      "com.davideicardi" %% "kaa" % "0.4.3"
+        exclude("org.apache.kafka", "kafka-clients"),
       // logging (for kafka)
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "ch.qos.logback" % "logback-classic" % "1.2.3"
+        exclude("org.slf4j", "slf4j-api"),
       // retry library
       "com.softwaremill.retry" %% "retry" % "0.3.3",
     ),
