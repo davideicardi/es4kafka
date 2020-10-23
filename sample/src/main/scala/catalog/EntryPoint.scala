@@ -10,6 +10,7 @@ import catalog.books._
 import com.davideicardi.kaa.KaaSchemaRegistry
 import com.davideicardi.kaa.kafka.GenericSerde
 import es4kafka._
+import es4kafka.administration.KafkaTopicAdmin
 import es4kafka.http.{MetadataRoutes, RouteController}
 import es4kafka.streaming.{DefaultSnapshotsStateReader, MetadataService}
 import org.apache.kafka.common.serialization.Serdes
@@ -75,13 +76,19 @@ object EntryPoint extends App with EventSourcingApp {
     booksRoutes,
   )
 
+  new KafkaTopicAdmin(Config)
+    .addSchemaTopic()
+    .addAggregate(Config.Book)
+    .addAggregate(Config.Author)
+    .setup()
+
   run()
 
   override protected def shutDown(): Unit = {
     super.shutDown()
     authorsCommandSender.close()
     booksCommandSender.close()
-    schemaRegistry.shutdown()
+    schemaRegistry.close()
   }
 }
 

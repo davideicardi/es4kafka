@@ -16,7 +16,6 @@ class AuthorEventsSpec extends AnyFunSpec with Matchers {
   for (e <- events) {
     it("should be possible to serialize and deserialize " + e.getClass.getCanonicalName) {
       val json = e.toJson
-      println(json)
       json.convertTo[AuthorEvent] should be (e)
     }
   }
