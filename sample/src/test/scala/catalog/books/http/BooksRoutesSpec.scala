@@ -8,21 +8,17 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import catalog.Config
 import catalog.books._
+import catalog.serialization.JsonFormats
 import es4kafka._
 import es4kafka.streaming.SnapshotStateReader
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import spray.json.DefaultJsonProtocol._
 
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 
-class BooksRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest with MockFactory {
-  import BookCommandsJsonFormats._
-  import BookEventsJsonFormats._
-  import BookJsonFormats._
-  import CommonJsonFormats._
+class BooksRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest with MockFactory with JsonFormats {
 
   private def targetRoute(
                          commandSender: CommandSender[UUID, BookCommand, BookEvent] = mock[CommandSender[UUID, BookCommand, BookEvent]],

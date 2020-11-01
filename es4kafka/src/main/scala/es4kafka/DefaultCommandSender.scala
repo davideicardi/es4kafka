@@ -20,24 +20,23 @@ import spray.json._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class DefaultCommandSender[TKey, TCommand <: Command[TKey], TEvent <: Event](
-                                actorSystem: ActorSystem,
-                                serviceConfig: ServiceConfig,
-                                aggregateConfig: AggregateConfig,
-                                metadataService: MetadataService,
-                                streams: KafkaStreams,
-                                keyAvroSerde: Serde[TKey],
-                                commandAvroSerde: Serde[Envelop[TCommand]],
-                                eventJsonFormat: RootJsonFormat[TEvent],
-                              ) extends CommandSender[TKey, TCommand, TEvent] {
-  private implicit val keySerde: Serde[TKey] = keyAvroSerde
-  private implicit val commandSerde: Serde[Envelop[TCommand]] = commandAvroSerde
-  private implicit val entityJsonFormat: RootJsonFormat[TEvent] = eventJsonFormat
+class DefaultCommandSender[TKey, TCommand <: Command[TKey], TEvent <: Event]
+(
+  actorSystem: ActorSystem,
+  serviceConfig: ServiceConfig,
+  aggregateConfig: AggregateConfig,
+  metadataService: MetadataService,
+  streams: KafkaStreams,
+) (
+  implicit keyAvroSerde: Serde[TKey],
+  commandAvroSerde: Serde[Envelop[TCommand]],
+  eventJsonFormat: RootJsonFormat[TEvent],
+) extends CommandSender[TKey, TCommand, TEvent] {
 
   private implicit val system: ActorSystem = actorSystem
   private implicit val executionContext: ExecutionContext = system.dispatcher
 
-  private val producerSettings = ProducerSettings(actorSystem, keySerde.serializer(), commandSerde.serializer())
+  private val producerSettings = ProducerSettings(actorSystem, keyAvroSerde.serializer(), commandAvroSerde.serializer())
     .withBootstrapServers(serviceConfig.kafka_brokers)
   private val producer = SendProducer(producerSettings)(actorSystem)
   private val msgIdSerde = Serdes.UUID()

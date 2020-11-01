@@ -4,14 +4,12 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import es4kafka.serialization.CommonJsonFormats
 import es4kafka.streaming._
-import spray.json.DefaultJsonProtocol._
 
 import scala.concurrent.ExecutionContext
 
-class MetadataRoutes(metadataService: MetadataService) extends RouteController {
-  import es4kafka.CommonJsonFormats._
-
+class MetadataRoutes(metadataService: MetadataService) extends RouteController with CommonJsonFormats {
   def createRoute()(implicit executionContext: ExecutionContext): Route = {
     val storeNameRegexPattern = """\w+""".r
 

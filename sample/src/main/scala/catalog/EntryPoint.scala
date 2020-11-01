@@ -3,20 +3,21 @@ package catalog
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import catalog.authors.http.AuthorsRoutes
 import catalog.authors._
-import catalog.books.http.BooksRoutes
+import catalog.authors.http.AuthorsRoutes
 import catalog.books._
+import catalog.books.http.BooksRoutes
+import catalog.booksCards._
+import catalog.booksCards.http.BooksCardsRoutes
+import catalog.serialization._
 import com.davideicardi.kaa.KaaSchemaRegistry
-import com.davideicardi.kaa.kafka.GenericSerde
 import es4kafka._
 import es4kafka.administration.KafkaTopicAdmin
 import es4kafka.http.{MetadataRoutes, RouteController}
-import es4kafka.streaming.{DefaultSnapshotsStateReader, MetadataService}
-import org.apache.kafka.common.serialization.Serdes
+import es4kafka.streaming._
 import org.apache.kafka.streams.KafkaStreams
 
-object EntryPoint extends App with EventSourcingApp {
+object EntryPoint extends App with EventSourcingApp with AvroSerdes with JsonFormats {
   val serviceConfig: ServiceConfig = Config
   implicit val system: ActorSystem = ActorSystem(serviceConfig.applicationId)
   val schemaRegistry = new KaaSchemaRegistry(serviceConfig.kafka_brokers)
@@ -34,17 +35,12 @@ object EntryPoint extends App with EventSourcingApp {
     Config.Author,
     metadataService,
     streams,
-    Serdes.String(),
-    new GenericSerde[Envelop[AuthorCommand]](schemaRegistry),
-    AuthorEventsJsonFormats.AuthorEventFormat,
   )
   val authorsStateReader = new DefaultSnapshotsStateReader[String, Author](
     system,
     metadataService,
     streams,
     Config.Author,
-    Serdes.String,
-    AuthorJsonFormats.AuthorFormat,
   )
   val authorsRoutes = new AuthorsRoutes(authorsCommandSender, authorsStateReader, Config.Author)
 
@@ -55,31 +51,37 @@ object EntryPoint extends App with EventSourcingApp {
     Config.Book,
     metadataService,
     streams,
-    Serdes.UUID(),
-    new GenericSerde[Envelop[BookCommand]](schemaRegistry),
-    BookEventsJsonFormats.BookEventFormat,
   )
   val booksStateReader = new DefaultSnapshotsStateReader[UUID, Book](
     system,
     metadataService,
     streams,
     Config.Book,
-    Serdes.UUID(),
-    BookJsonFormats.BookFormat,
   )
   val booksRoutes = new BooksRoutes(booksCommandSender, booksStateReader, Config.Book)
+
+  // booksCards
+  val booksCardsStateReader = new DefaultProjectionStateReader[UUID, BookCard](
+    system,
+    metadataService,
+    streams,
+    Config.BookCard,
+  )
+  val booksCardsRoutes = new BooksCardsRoutes(booksCardsStateReader, Config.BookCard)
 
 
   val controllers: Seq[RouteController] = Seq(
     new MetadataRoutes(metadataService),
     authorsRoutes,
     booksRoutes,
+    booksCardsRoutes,
   )
 
   new KafkaTopicAdmin(Config)
     .addSchemaTopic()
     .addAggregate(Config.Book)
     .addAggregate(Config.Author)
+    .addProjection(Config.BookCard)
     .setup()
 
   run()

@@ -5,30 +5,24 @@ import java.util.UUID
 import es4kafka.DefaultEntity
 
 object Book {
-  def draft: Book = Book(UUID.randomUUID())
+  def draft: Book = Book()
 }
 
 case class Book(
-                id: UUID,
+                id: UUID = new UUID(0,0),
                 title: String = "",
+                author: Option[String] = None,
                ) extends DefaultEntity[UUID, BookCommand, BookEvent, Book] {
   def apply(event: BookEvent): Book = {
     event match {
-      case createEvent: BookCreated => Book(createEvent.id, createEvent.title)
+      case ev: BookCreated => Book(ev.id, ev.title)
+      case ev: BookAuthorSet => this.copy(author = ev.author)
     }
   }
   def handle(command: BookCommand): BookEvent = {
     command match {
       case cmd: CreateBook => BookCreated(cmd.id, cmd.title)
+      case cmd: SetBookAuthor => BookAuthorSet(cmd.id, cmd.author)
     }
   }
-}
-
-object BookJsonFormats {
-  import spray.json._
-  import spray.json.DefaultJsonProtocol._
-  import es4kafka.CommonJsonFormats._
-
-  // json serializers
-  implicit val BookFormat: RootJsonFormat[Book] = jsonFormat2(Book.apply)
 }

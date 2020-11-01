@@ -1,49 +1,29 @@
-package catalog.books.http
+package catalog.booksCards.http
 
 import java.util.UUID
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import catalog.books._
+import catalog.booksCards._
 import catalog.serialization.JsonFormats
 import es4kafka._
 import es4kafka.http.{RouteController, RpcActions}
-import es4kafka.streaming.SnapshotStateReader
 
 import scala.concurrent._
+import es4kafka.streaming.StateReader
 
-class BooksRoutes(
-                     commandSender: CommandSender[UUID, BookCommand, BookEvent],
-                     entityStateReader: SnapshotStateReader[UUID, Book],
-                     aggregateConfig: AggregateConfig,
+class BooksCardsRoutes(
+                     entityStateReader: StateReader[UUID, BookCard],
+                     projectionConfig: ProjectionConfig,
                    ) extends RouteController with JsonFormats {
-
   def createRoute()(implicit executionContext: ExecutionContext): Route = {
-    import aggregateConfig._
+    import projectionConfig._
     import RpcActions._
 
     concat(
-      post {
-        concat(
-          path(httpPrefix / commands ) {
-            entity(as[BookCommand]) { command =>
-              complete {
-                commandSender.send(command)
-              }
-            }
-          },
-        )
-      },
       get {
         concat(
-          rejectEmptyResponse {
-            path(httpPrefix / events / one / JavaUUID) { msgId =>
-              complete {
-                commandSender.wait(MsgId(msgId))
-              }
-            }
-          },
           path(httpPrefix / all) {
             parameter(localParam.as[Boolean].optional) { localOnly =>
               complete {

@@ -15,7 +15,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"_type\": \"CreateAuthor\",\n    \"code\": \"luke\",\n    \"firstName\": \"Luke\",\n    \"lastName\": \"Skywalker\"\n}",
+							"raw": "{\n    \"_type\": \"CreateAuthor\",\n    \"code\": \"eco\",\n    \"firstName\": \"Umberto\",\n    \"lastName\": \"Eco\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -44,7 +44,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"_type\": \"UpdateAuthor\",\n    \"code\": \"luke\",\n    \"firstName\": \"Lukeeee\",\n    \"lastName\": \"Skywalker\"\n}",
+							"raw": "{\n    \"_type\": \"UpdateAuthor\",\n    \"code\": \"eco\",\n    \"firstName\": \"U.\",\n    \"lastName\": \"Eco\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -73,7 +73,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"_type\": \"DeleteAuthor\",\n    \"code\": \"luke\"\n}",
+							"raw": "{\n    \"_type\": \"DeleteAuthor\",\n    \"code\": \"eco\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -171,7 +171,36 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"_type\": \"CreateBook\",\n    \"id\": \"c7ffa160-ce82-48e5-a8e8-846a18433d09\",\n    \"title\": \"Harry Potter\"\n}",
+							"raw": "{\n    \"_type\": \"CreateBook\",\n    \"id\": \"b999a160-ce82-48e5-9999-846a18433d07\",\n    \"title\": \"Nel nome della rosa\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:9081/books/commands",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"books",
+								"commands"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "setAuthor",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"_type\": \"SetBookAuthor\",\n    \"id\": \"b999a160-ce82-48e5-9999-846a18433d07\",\n    \"author\": \"eco\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -199,7 +228,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:9081/books/one/c7ffa160-ce82-48e5-a8e8-846a18433d09",
+							"raw": "http://localhost:9081/books/one/b999a160-ce82-48e5-9999-846a18433d07",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -208,7 +237,7 @@
 							"path": [
 								"books",
 								"one",
-								"c7ffa160-ce82-48e5-a8e8-846a18433d09"
+								"b999a160-ce82-48e5-9999-846a18433d07"
 							]
 						}
 					},
@@ -250,6 +279,53 @@
 							"port": "9081",
 							"path": [
 								"books",
+								"all"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "booksCards",
+			"item": [
+				{
+					"name": "get",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9081/booksCards/one/b999a160-ce82-48e5-9999-846a18433d07",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"booksCards",
+								"one",
+								"b999a160-ce82-48e5-9999-846a18433d07"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:9081/booksCards/all",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9081",
+							"path": [
+								"booksCards",
 								"all"
 							]
 						}
