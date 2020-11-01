@@ -1,26 +1,23 @@
 package es4kafka.testing
 
 import es4kafka._
-import es4kafka.streaming.StreamingPipelineBase
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.{TestInputTopic, TestOutputTopic, TopologyTestDriver}
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters._
 
-trait EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent, VSnapshot]
-  extends AnyFunSpec with Matchers {
-
-  val target: StreamingPipelineBase
-  val serviceConfig: ServiceConfig
-  val aggregateConfig: AggregateConfig
-  implicit val keySerde: Serde[K]
-  implicit val commandSerde: Serde[Envelop[VCommand]]
-  implicit val eventSerde: Serde[Envelop[VEvent]]
-  implicit val snapshotSerde: Serde[VSnapshot]
-
-  def createCmdTopic(driver: TopologyTestDriver): TestInputTopic[K, Envelop[VCommand]] = {
+class EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent, VSnapshot]
+(
+  aggregateConfig: AggregateConfig,
+  driver: TopologyTestDriver,
+)
+(
+  implicit keySerde: Serde[K],
+  commandSerde: Serde[Envelop[VCommand]],
+  eventSerde: Serde[Envelop[VEvent]],
+  snapshotSerde: Serde[VSnapshot],
+){
+  lazy val cmdInputTopic: TestInputTopic[K, Envelop[VCommand]] = {
     driver.createInputTopic[K, Envelop[VCommand]](
       aggregateConfig.topicCommands,
       keySerde.serializer(),
@@ -28,13 +25,13 @@ trait EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent, VSnapshot]
     )
   }
 
-  def pipeInputCommand(inputCommandTopic: TestInputTopic[K, Envelop[VCommand]], command: VCommand): MsgId = {
+  def pipeInputCommand(command: VCommand): MsgId = {
     val msgId = MsgId.random()
-    inputCommandTopic.pipeInput(command.key, Envelop(msgId, command))
+    cmdInputTopic.pipeInput(command.key, Envelop(msgId, command))
     msgId
   }
 
-  def createEventTopic(driver: TopologyTestDriver): TestOutputTopic[K, Envelop[VEvent]] = {
+  lazy val eventOutputTopic: TestOutputTopic[K, Envelop[VEvent]] = {
     driver.createOutputTopic[K, Envelop[VEvent]](
       aggregateConfig.topicEvents,
       keySerde.deserializer(),
@@ -42,18 +39,12 @@ trait EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent, VSnapshot]
     )
   }
 
-  def getOutputEvents(driver: TopologyTestDriver): Seq[(K, Envelop[VEvent])] = {
-    val eventsTopic = createEventTopic(driver)
-    eventsTopic.readKeyValuesToList().asScala
+  def getOutputEvents: Seq[(K, Envelop[VEvent])] = {
+    eventOutputTopic.readKeyValuesToList().asScala
       .map(x => x.key -> x.value).toSeq
   }
 
-  def getOutputSnapshots(driver: TopologyTestDriver): Map[K, VSnapshot] = {
-    val snapshotTopic = createSnapshotTopic(driver)
-    snapshotTopic.readKeyValuesToMap().asScala.toMap
-  }
-
-  def createSnapshotTopic(driver: TopologyTestDriver): TestOutputTopic[K, VSnapshot] = {
+  lazy val snapshotOutputTopic: TestOutputTopic[K, VSnapshot] = {
     driver.createOutputTopic[K, VSnapshot](
       aggregateConfig.topicSnapshots,
       keySerde.deserializer(),
@@ -61,15 +52,7 @@ trait EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent, VSnapshot]
     )
   }
 
-  def runTopology[T](testFun: TopologyTestDriver => T): T = {
-    val topology = target.createTopology()
-    val driver = new TopologyTestDriver(topology, target.properties)
-
-    try {
-      testFun(driver)
-    } finally {
-      driver.close()
-    }
+  def getOutputSnapshots: Map[K, VSnapshot] = {
+    snapshotOutputTopic.readKeyValuesToMap().asScala.toMap
   }
-
 }

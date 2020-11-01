@@ -1,7 +1,5 @@
 package catalog.authors
 
-import es4kafka.CommonJsonFormats.EnumJsonConverter
-
 object Author {
   def apply(snapshot: Author, event: AuthorEvent): Author = {
     event match {
@@ -82,12 +80,4 @@ case class Author(
 
   private def deletedHandle(command: AuthorCommand): AuthorEvent =
     draftHandle(command)
-}
-
-object AuthorJsonFormats {
-  import spray.json._
-  import spray.json.DefaultJsonProtocol._
-  // json serializers
-  implicit val AuthorStateFormat: RootJsonFormat[AuthorStates.AuthorState] = new EnumJsonConverter(AuthorStates)
-  implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat4(Author.apply)
 }

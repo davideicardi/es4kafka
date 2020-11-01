@@ -4,7 +4,7 @@ import java.lang
 import java.util.{Optional, Properties}
 
 import com.davideicardi.kaa.KaaSchemaRegistry
-import es4kafka.{AggregateConfig, ServiceConfig}
+import es4kafka.{AggregateConfig, ProjectionConfig, ServiceConfig}
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.{AdminClient, NewTopic}
 import org.apache.kafka.common.config.TopicConfig
@@ -12,7 +12,6 @@ import org.apache.kafka.common.config.TopicConfig
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
-
 import scala.collection.mutable.{Map => MutableMap}
 
 object KafkaTopicAdmin {
@@ -31,6 +30,7 @@ class KafkaTopicAdmin(
                      ) {
   adminProps.putIfAbsent("delete.enable.topic", "true")
   private val topics = new ListBuffer[TopicInfo]
+  private val INFINITE_RETENTION: Long = -1
 
   def this(config: ServiceConfig) = {
     this(
@@ -43,6 +43,7 @@ class KafkaTopicAdmin(
       TopicInfo(
         KaaSchemaRegistry.DEFAULT_TOPIC_NAME,
         partitions = Some(1),
+        retention = Some(INFINITE_RETENTION),
         compact = true
       )
 
@@ -55,11 +56,16 @@ class KafkaTopicAdmin(
     addPersistentTopic(aggregateConfig.topicSnapshots, compact = true)
   }
 
+  def addProjection(projectionConfig: ProjectionConfig): KafkaTopicAdmin = {
+    addPersistentTopic(projectionConfig.topicSnapshots, compact = true)
+  }
+
   def addPersistentTopic(name: String, compact: Boolean = false): KafkaTopicAdmin = {
     topics +=
       TopicInfo(
         name,
         partitions = None,
+        retention = Some(INFINITE_RETENTION),
         compact
       )
 
@@ -101,6 +107,10 @@ class KafkaTopicAdmin(
     if (topic.compact)
       configs += TopicConfig.CLEANUP_POLICY_CONFIG -> TopicConfig.CLEANUP_POLICY_COMPACT
 
+    topic.retention.foreach(r =>
+      configs += TopicConfig.RETENTION_MS_CONFIG -> r.toString
+    )
+
     newTopic.configs(configs.asJava)
     newTopic
   }
@@ -111,5 +121,5 @@ class KafkaTopicAdmin(
   }
 }
 
-case class TopicInfo(name: String, partitions: Option[Integer], compact: Boolean) {
+case class TopicInfo(name: String, partitions: Option[Integer], retention: Option[Long], compact: Boolean) {
 }

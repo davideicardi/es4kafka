@@ -1,12 +1,13 @@
 package catalog
 
-import catalog.authors.streaming.AuthorsTopology
-import catalog.books.streaming.BooksTopology
 import com.davideicardi.kaa.SchemaRegistry
 import es4kafka.ServiceConfig
 import es4kafka.streaming.StreamingPipelineBase
 import org.apache.kafka.streams.Topology
 import org.apache.kafka.streams.scala._
+import catalog.authors.streaming.AuthorsTopology
+import catalog.books.streaming.BooksTopology
+import catalog.booksCards.streaming.BooksCardsTopology
 
 class StreamingPipeline(
                          val serviceConfig: ServiceConfig,
@@ -16,11 +17,11 @@ class StreamingPipeline(
   def createTopology(): Topology = {
     val streamBuilder = new StreamsBuilder
 
-    AuthorsTopology
-      .defineTopology(streamBuilder, schemaRegistry)
+    val authors = new AuthorsTopology(streamBuilder, schemaRegistry)
 
-    BooksTopology
-      .defineTopology(streamBuilder, schemaRegistry)
+    val books = new BooksTopology(streamBuilder, schemaRegistry)
+
+    new BooksCardsTopology(schemaRegistry, books.snapshotTable, authors.snapshotTable)
 
     streamBuilder.build()
   }
