@@ -155,13 +155,17 @@ HTTP RPC style API are available at: http://localhost:9081/
 
 (see PostMan collection inside `./docs/books-catalog.postman_collection`)
 
-## Credits
+## Credits and other references
 
 Inspired by:
 
 - Event Sourcing with Kafka Stream:
+    - https://www.youtube.com/watch?v=b17l7LvrTco
     - https://github.com/amitayh/event-sourcing-kafka-streams
     - https://speakerdeck.com/amitayh/building-event-sourced-systems-with-kafka-streams
+- Event sourcing with Kafka by Confluent:
+    - https://www.confluent.io/blog/event-sourcing-cqrs-stream-processing-apache-kafka-whats-connection/
+    - https://www.confluent.io/blog/event-sourcing-using-apache-kafka/
 - Kafka Streams Interactive Queries with Akka Http:
     - https://sachabarbs.wordpress.com/2019/05/08/kafkastreams-interactive-queries/
 
