@@ -5,6 +5,7 @@ import java.util.UUID
 import es4kafka.MsgId
 import es4kafka.streaming.MetadataStoreInfo
 import spray.json.DefaultJsonProtocol
+import es4kafka.EntityStates
 
 trait CommonJsonFormats extends DefaultJsonProtocol {
 
@@ -40,4 +41,5 @@ trait CommonJsonFormats extends DefaultJsonProtocol {
     }
   }
 
+  implicit val EntityStateFormat: RootJsonFormat[EntityStates.EntityState] = new EnumJsonConverter(EntityStates)
 }

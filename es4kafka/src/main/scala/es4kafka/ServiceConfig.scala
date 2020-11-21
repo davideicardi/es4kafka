@@ -4,7 +4,7 @@ import org.apache.kafka.streams.state.HostInfo
 
 trait ServiceConfig {
   /**
-    * Name of the application.
+    * Name of the application/microservice.
     * It will be used as Kafka applicationId and as a prefix for kafka streams internal topics.
     */
   val applicationId: String
@@ -13,7 +13,13 @@ trait ServiceConfig {
     */
   val boundedContext: String
 
+  /**
+    * Default port used for http listening
+    */
+  val defaultHttpEndpointPort: Integer
+
   // TODO Read this config from env variables
-  val http_endpoint: HostInfo = HostInfo.buildFromEndpoint(sys.env.getOrElse("LISTENING_ENDPOINT", "localhost:9081"))
-  val kafka_brokers: String = sys.env.getOrElse("KAFKA_BROKERS", "localhost:9092")
+  lazy val httpEndpoint: HostInfo =
+    HostInfo.buildFromEndpoint(sys.env.getOrElse("LISTENING_ENDPOINT", s"localhost:$defaultHttpEndpointPort"))
+  lazy val kafkaBrokers: String = sys.env.getOrElse("KAFKA_BROKERS", "localhost:9092")
 }

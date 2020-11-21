@@ -58,9 +58,10 @@ class MetadataService(
     val metadata = streams.queryMetadataForKey(store, key, serializer)
     if (metadata == null || metadata == KeyQueryMetadata.NOT_AVAILABLE)
       None
-
-    val activeHost = metadata.getActiveHost
-    Some(MetadataStoreInfo(hostInfo.isThisHost(activeHost), activeHost.host, activeHost.port))
+    else {
+      val activeHost = metadata.getActiveHost
+      Some(MetadataStoreInfo(hostInfo.isThisHost(activeHost), activeHost.host, activeHost.port))
+    }
   }
 
 

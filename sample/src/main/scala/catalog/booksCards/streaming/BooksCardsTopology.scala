@@ -11,6 +11,7 @@ import com.davideicardi.kaa.SchemaRegistry
 import org.apache.kafka.streams.scala.kstream._
 import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.state.Stores
+import es4kafka.EntityStates
 
 class BooksCardsTopology
 (
@@ -25,9 +26,9 @@ class BooksCardsTopology
   val bookWithAuthorTable: KTable[UUID, BookCard] = bookTable
     .filter((_, v) => v.author.isDefined)
     .join(
-      authorTable,
-      (book: Book) => book.author.getOrElse(""), // Foreign Key
-      (book: Book, author: Author) => BookCard(book, author), // joiner
+      authorTable.filter((_, v) => v.state == EntityStates.VALID),  // table to join
+      (book: Book) => book.author.getOrElse(""),                    // Foreign Key
+      (book: Book, author: Author) => BookCard(book, author),       // joiner
       Materialized.as(storeSnapshots)
     )
 

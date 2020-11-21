@@ -3,6 +3,7 @@ package catalog.serialization
 import catalog.authors._
 import catalog.books._
 import catalog.booksCards._
+import es4kafka._
 import es4kafka.serialization.CommonJsonFormats
 import spray.json._
 
@@ -18,6 +19,7 @@ trait JsonFormats extends CommonJsonFormats {
       val fields = value match {
         case e: CreateBook => e.toJson.asJsObject.fields
         case e: SetBookAuthor => e.toJson.asJsObject.fields
+        case _: UnknownBookCommand => throw new UnknownCommandException("Unknown command")
       }
       val extendedFields = fields ++ Seq(
         "_type" -> JsString(value.className),
@@ -48,6 +50,7 @@ trait JsonFormats extends CommonJsonFormats {
       val fields = value match {
         case e: BookCreated => e.toJson.asJsObject.fields
         case e: BookAuthorSet => e.toJson.asJsObject.fields
+        case _: UnknownBookEvent => throw new UnknownEventException("Unknown event")
       }
       val extendedFields = fields ++ Seq(
         "_type" -> JsString(value.className),
@@ -72,7 +75,6 @@ trait JsonFormats extends CommonJsonFormats {
   }
 
   // author
-  implicit val AuthorStateFormat: RootJsonFormat[AuthorStates.AuthorState] = new EnumJsonConverter(AuthorStates)
   implicit val AuthorFormat: RootJsonFormat[Author] = jsonFormat4(Author.apply)
 
   // author commands
@@ -85,6 +87,7 @@ trait JsonFormats extends CommonJsonFormats {
         case e: CreateAuthor => e.toJson.asJsObject.fields
         case e: UpdateAuthor => e.toJson.asJsObject.fields
         case e: DeleteAuthor => e.toJson.asJsObject.fields
+        case _: UnknownAuthorCommand => throw new UnknownEventException("Unknown command")
       }
       val extendedFields = fields ++ Seq(
         "_type" -> JsString(value.className),
@@ -120,6 +123,7 @@ trait JsonFormats extends CommonJsonFormats {
         case e: AuthorUpdated => e.toJson.asJsObject.fields
         case e: AuthorDeleted => e.toJson.asJsObject.fields
         case e: AuthorError => e.toJson.asJsObject.fields
+        case _: UnknownAuthorEvent => throw new UnknownEventException("Unknown event")
       }
       val extendedFields = fields ++ Seq(
         "_type" -> JsString(value.className),

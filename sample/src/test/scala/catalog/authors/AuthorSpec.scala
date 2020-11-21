@@ -2,6 +2,7 @@ package catalog.authors
 
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
+import es4kafka.EntityStates
 
 class AuthorSpec extends AnyFunSpec with Matchers {
   describe("when draft") {
@@ -16,7 +17,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
       val event = target.handle(cmd)
 
       val expectedEvent = AuthorCreated("spider-man", "Peter", "Parker")
-      val expectedSnapshot = Author(AuthorStates.VALID, "spider-man", "Peter", "Parker")
+      val expectedSnapshot = Author(EntityStates.VALID, "spider-man", "Peter", "Parker")
       event should be(expectedEvent)
       Author(target, event) should be(expectedSnapshot)
     }
@@ -32,14 +33,14 @@ class AuthorSpec extends AnyFunSpec with Matchers {
   }
 
   describe("when created") {
-    val target = Author(AuthorStates.VALID, "superman", "Clark", "Kent")
+    val target = Author(EntityStates.VALID, "superman", "Clark", "Kent")
 
     it("should be possible to change the name") {
       val cmd = UpdateAuthor(target.code, "C", "K")
       val event = target.handle(cmd)
 
       val expectedEvent = AuthorUpdated(target.code, "C", "K")
-      val expectedSnapshot = Author(AuthorStates.VALID, "superman", "C", "K")
+      val expectedSnapshot = Author(EntityStates.VALID, "superman", "C", "K")
       event should be(expectedEvent)
       Author(target, event) should be(expectedSnapshot)
     }
@@ -49,7 +50,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
       val event = target.handle(cmd)
 
       val expectedEvent = AuthorDeleted(target.code)
-      val expectedSnapshot = Author(AuthorStates.DELETED, "superman", "Clark", "Kent")
+      val expectedSnapshot = Author(EntityStates.DELETED, "superman", "Clark", "Kent")
       event should be(expectedEvent)
       Author(target, event) should be(expectedSnapshot)
     }
@@ -63,7 +64,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
       Author(target, event) should be(target)
     }
 
-    it("should not be possible to change firstname with empty") {
+    it("should not be possible to change firstName with empty") {
       val cmd = UpdateAuthor(target.code, "", "K")
       val event = target.handle(cmd)
 
@@ -92,7 +93,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
   }
 
   describe("when deleted") {
-    val target = Author(AuthorStates.DELETED, code = "spider-man")
+    val target = Author(EntityStates.DELETED, code = "spider-man")
 
     it("should not be possible to update") {
       val cmd = UpdateAuthor(target.code, "C", "K")
@@ -108,7 +109,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
       val event = target.handle(cmd)
 
       val expectedEvent = AuthorCreated(target.code, "Peter", "Parker")
-      val expectedSnapshot = Author(AuthorStates.VALID, "spider-man", "Peter", "Parker")
+      val expectedSnapshot = Author(EntityStates.VALID, "spider-man", "Peter", "Parker")
       event should be(expectedEvent)
       Author(target, event) should be(expectedSnapshot)
     }

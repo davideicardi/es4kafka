@@ -22,8 +22,12 @@ class OutputTopicTest[K, V]
     )
   }
 
-  def getOutput: Seq[(K, V)] = {
+  def readValuesToSeq(): Seq[(K, V)] = {
     outputTopic.readKeyValuesToList().asScala
       .map(x => x.key -> x.value).toSeq
+  }
+
+  def readValuesToMap(): Map[K, V] = {
+    outputTopic.readKeyValuesToMap().asScala.toMap
   }
 }

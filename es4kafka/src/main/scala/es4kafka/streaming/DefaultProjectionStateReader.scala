@@ -17,7 +17,7 @@ class DefaultProjectionStateReader[TKey, TValue]
 )(
   implicit val keySerde: Serde[TKey],
   val valueJsonFormat: RootJsonFormat[TValue]
-) extends StateReader[TKey, TValue] {
+) extends SnapshotStateReader[TKey, TValue] with StateReader[TKey, TValue] {
 
   val storeName: String = projectionConfig.storeSnapshots
 

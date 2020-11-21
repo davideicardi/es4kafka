@@ -11,10 +11,10 @@ import es4kafka._
 import es4kafka.http.{RouteController, RpcActions}
 
 import scala.concurrent._
-import es4kafka.streaming.StateReader
+import es4kafka.streaming.SnapshotStateReader
 
 class BooksCardsRoutes(
-                     entityStateReader: StateReader[UUID, BookCard],
+                     entityStateReader: SnapshotStateReader[UUID, BookCard],
                      projectionConfig: ProjectionConfig,
                    ) extends RouteController with JsonFormats {
   def createRoute()(implicit executionContext: ExecutionContext): Route = {

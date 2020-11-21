@@ -8,11 +8,18 @@ import es4kafka.{AggregateConfig, ProjectionConfig, ServiceConfig}
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.{AdminClient, NewTopic}
 import org.apache.kafka.common.config.TopicConfig
+import org.apache.kafka.common.errors.TopicExistsException
+import org.apache.kafka.common.KafkaFuture
 
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 import scala.collection.mutable.{Map => MutableMap}
+import scala.util.Try
+import scala.util.Failure
+import scala.util.Success
+import scala.concurrent._
+import scala.concurrent.duration._
 
 object KafkaTopicAdmin {
   def createProps(
@@ -34,7 +41,7 @@ class KafkaTopicAdmin(
 
   def this(config: ServiceConfig) = {
     this(
-      KafkaTopicAdmin.createProps(config.kafka_brokers, config.applicationId),
+      KafkaTopicAdmin.createProps(config.kafkaBrokers, config.applicationId),
     )
   }
 
@@ -91,9 +98,32 @@ class KafkaTopicAdmin(
       .filter(t => !topicExists(adminClient, t))
       .map(toNewTopic)
 
-    // TODO make this idempotent by catching a the exception if topic exists
-    val _ = adminClient.createTopics(newTopics.asJavaCollection)
-      .all().get()
+    newTopics
+      .foreach(newTopic => {
+        Try {
+          Await.ready(kafkaFutureToFuture(
+            adminClient.createTopics(Seq(newTopic).asJavaCollection).all()
+          ), 20.seconds)
+        } match {
+          case Failure(_: TopicExistsException) => {}
+          case Failure(e) => throw e
+          case Success(_) => {}
+        }
+      })
+  }
+
+  private def kafkaFutureToFuture[T](kafkaFuture: KafkaFuture[T]): Future[T] = {
+    val promise = Promise[T]()
+    kafkaFuture.whenComplete((value, throwable) => {
+        if (throwable != null) {
+          promise.failure(throwable)
+        }
+        else {
+          promise.success(value)
+        }
+      })
+
+    promise.future
   }
 
   private def toNewTopic(topic: TopicInfo) : NewTopic = {

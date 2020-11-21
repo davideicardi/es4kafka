@@ -20,12 +20,12 @@ import org.apache.kafka.streams.KafkaStreams
 object EntryPoint extends App with EventSourcingApp with AvroSerdes with JsonFormats {
   val serviceConfig: ServiceConfig = Config
   implicit val system: ActorSystem = ActorSystem(serviceConfig.applicationId)
-  val schemaRegistry = new KaaSchemaRegistry(serviceConfig.kafka_brokers)
+  val schemaRegistry = new KaaSchemaRegistry(serviceConfig.kafkaBrokers)
   val streamingPipeline = new StreamingPipeline(serviceConfig, schemaRegistry)
   val streams: KafkaStreams = new KafkaStreams(
     streamingPipeline.createTopology(),
     streamingPipeline.properties)
-  val hostInfoService = new HostInfoServices(serviceConfig.http_endpoint)
+  val hostInfoService = new HostInfoServices(serviceConfig.httpEndpoint)
   val metadataService = new MetadataService(streams, hostInfoService)
 
   // Authors

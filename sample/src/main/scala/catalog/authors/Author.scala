@@ -1,31 +1,30 @@
 package catalog.authors
 
+import es4kafka._
+
 object Author {
   def apply(snapshot: Author, event: AuthorEvent): Author = {
     event match {
       case AuthorCreated(code, firstName, lastName) =>
         Author(
-          state = AuthorStates.VALID,
+          state = EntityStates.VALID,
           code = code, firstName = firstName, lastName = lastName)
       case AuthorUpdated(_, firstName, lastName) =>
         snapshot.copy(firstName = firstName, lastName = lastName)
       case AuthorDeleted(_) =>
-        snapshot.copy(state = AuthorStates.DELETED)
+        snapshot.copy(state = EntityStates.DELETED)
       case AuthorError(_, _) =>
         snapshot
+      case UnknownAuthorEvent() =>
+        throw new UnknownEventException("Invalid event")
     }
   }
 
   def apply(code: String, firstName: String, lastName: String): Author = {
-    Author(AuthorStates.VALID, code, firstName, lastName)
+    Author(EntityStates.VALID, code, firstName, lastName)
   }
 
   def draft: Author = Author()
-}
-
-object AuthorStates extends Enumeration {
-  type AuthorState = Value
-  val DRAFT, VALID, DELETED = Value
 }
 
 /**
@@ -35,16 +34,16 @@ object AuthorStates extends Enumeration {
  * @param lastName Last Name
  */
 case class Author(
-                   state: AuthorStates.AuthorState = AuthorStates.DRAFT,
+                   state: EntityStates.EntityState = EntityStates.DRAFT,
                    code: String = "",
                    firstName: String = "",
                    lastName: String = ""
                  ) {
   def handle(command: AuthorCommand): AuthorEvent = {
     state match {
-      case AuthorStates.DRAFT => draftHandle(command)
-      case AuthorStates.VALID => validHandle(command)
-      case AuthorStates.DELETED => deletedHandle(command)
+      case EntityStates.DRAFT => draftHandle(command)
+      case EntityStates.VALID => validHandle(command)
+      case EntityStates.DELETED => deletedHandle(command)
     }
   }
 
@@ -75,6 +74,7 @@ case class Author(
           AuthorUpdated(command.code, firstName, lastName)
       case DeleteAuthor(_) => AuthorDeleted(command.code)
       case _: CreateAuthor => AuthorError(command.code, "Entity already created")
+      case _: UnknownAuthorCommand => throw new UnknownCommandException("Invalid command")
     }
   }
 

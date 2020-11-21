@@ -1,11 +1,11 @@
 package catalog
 
-import es4kafka.{AggregateConfig, ProjectionConfig, ServiceConfig}
+import es4kafka._
 
 object Config extends ServiceConfig {
-  // (micro)service name
   val applicationId: String = "sample"
   val boundedContext: String = "catalog"
+  val defaultHttpEndpointPort: Integer = 9081
 
   object Author extends AggregateConfig {
     val aggregateName: String = "authors"
