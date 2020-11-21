@@ -18,11 +18,12 @@ Event driven/event sourcing microservice example written with:
 
 ## Domain Model
 
-In this example I want to implement a very simple books catalog, when the user insert a list of authors, a list of books and can query the books for a specific author:
+In this example I want to implement a very simple books catalog.
+The user can insert authors, books and can get the books for a specific author:
 
 ![domain-model](docs/domain-model.drawio.png)
 
-NOTE: For the current model this is for sure an over-kill architecture, but the idea is just to keep the model simple for demostration purpose.
+NOTE: For the current model this is for sure an over-kill architecture, but the idea is just to keep the model simple to focus on the architectural patterns.
 
 ## Logical Architecture
 
