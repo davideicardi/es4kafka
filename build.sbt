@@ -43,13 +43,13 @@ val scalaTestVersion = "3.2.2"
 val AkkaVersion = "2.6.8"
 val AkkaHttpVersion = "10.2.1"
 
-val testDependencies = Seq(
-  "org.scalamock" %% "scalamock" % "4.4.0",
-  "org.apache.kafka" % "kafka-streams-test-utils" % kafkaVersion,
-  "org.scalatest" %% "scalatest-funspec"       % scalaTestVersion,
-  "org.scalatest" %% "scalatest-shouldmatchers" % scalaTestVersion,
-  "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion,
-  "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion,
+def testDependencies(scope: String) = Seq(
+  "org.scalamock" %% "scalamock" % "4.4.0" % scope,
+  "org.apache.kafka" % "kafka-streams-test-utils" % kafkaVersion % scope,
+  "org.scalatest" %% "scalatest-funspec"       % scalaTestVersion % scope,
+  "org.scalatest" %% "scalatest-shouldmatchers" % scalaTestVersion % scope,
+  "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % scope,
+  "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % scope,
 )
 
 lazy val es4kafka = (project in file("es4kafka"))
@@ -70,7 +70,7 @@ lazy val es4kafka = (project in file("es4kafka"))
         exclude("com.typesafe.akka", "akka-stream_2.13")
         exclude("org.apache.kafka", "kafka-clients"),
       // avro schema registry
-      "com.davideicardi" %% "kaa" % "0.4.3"
+      "com.davideicardi" %% "kaa" % "0.4.4"
         exclude("org.apache.kafka", "kafka-clients"),
       // logging (for kafka)
       "ch.qos.logback" % "logback-classic" % "1.2.3"
@@ -78,12 +78,13 @@ lazy val es4kafka = (project in file("es4kafka"))
       // retry library
       "com.softwaremill.retry" %% "retry" % "0.3.3",
     ),
+    libraryDependencies ++= testDependencies("test")
   )
 
 lazy val es4kafkaTest = (project in file("es4kafka-test"))
   .settings(
     name := "es4kafka-test",
-    libraryDependencies ++= testDependencies,
+    libraryDependencies ++= testDependencies("compile"),
   )
   .dependsOn(es4kafka)
 
@@ -91,7 +92,7 @@ lazy val sample = (project in file("sample"))
   .settings(
     name := "sample-books-catalog",
     publish / skip := true,
-    libraryDependencies ++= testDependencies,
+    libraryDependencies ++= testDependencies("test"),
   )
   .dependsOn(es4kafka, es4kafkaTest % "test")
 
