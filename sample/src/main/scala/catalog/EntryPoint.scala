@@ -2,7 +2,6 @@ package catalog
 
 import java.util.UUID
 
-import akka.actor.ActorSystem
 import catalog.authors._
 import catalog.authors.http.AuthorsRoutes
 import catalog.books._
@@ -10,23 +9,16 @@ import catalog.books.http.BooksRoutes
 import catalog.booksCards._
 import catalog.booksCards.http.BooksCardsRoutes
 import catalog.serialization._
-import com.davideicardi.kaa.KaaSchemaRegistry
 import es4kafka._
 import es4kafka.administration.KafkaTopicAdmin
 import es4kafka.http.{MetadataRoutes, RouteController}
 import es4kafka.streaming._
-import org.apache.kafka.streams.KafkaStreams
+import scala.concurrent.duration.Duration
 
 object EntryPoint extends App with EventSourcingApp with AvroSerdes with JsonFormats {
-  val serviceConfig: ServiceConfig = Config
-  implicit val system: ActorSystem = ActorSystem(serviceConfig.applicationId)
-  val schemaRegistry = new KaaSchemaRegistry(serviceConfig.kafkaBrokers)
-  val streamingPipeline = new StreamingPipeline(serviceConfig, schemaRegistry)
-  val streams: KafkaStreams = new KafkaStreams(
-    streamingPipeline.createTopology(),
-    streamingPipeline.properties)
-  val hostInfoService = new HostInfoServices(serviceConfig.httpEndpoint)
-  val metadataService = new MetadataService(streams, hostInfoService)
+  override val serviceConfig: ServiceConfig = Config
+  override val streamingPipeline: StreamingPipelineBase =
+    new StreamingPipeline(serviceConfig, schemaRegistry)
 
   // Authors
   val authorsCommandSender = new DefaultCommandSender[String, AuthorCommand, AuthorEvent](
@@ -86,11 +78,9 @@ object EntryPoint extends App with EventSourcingApp with AvroSerdes with JsonFor
 
   run()
 
-  override protected def shutDown(): Unit = {
-    super.shutDown()
-    authorsCommandSender.close()
-    booksCommandSender.close()
-    schemaRegistry.close()
+  protected override def onShutdown(maxWait: Duration): Unit = {
+    authorsCommandSender.close(maxWait)
+    booksCommandSender.close(maxWait)
   }
 }
 

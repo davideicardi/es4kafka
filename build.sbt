@@ -36,7 +36,6 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-value-discard", // Warn when non-Unit expression results are unused.
 )
 
-
 val avro4sVersion = "4.0.0"
 val kafkaVersion = "2.6.0"
 val scalaTestVersion = "3.2.2"
@@ -70,7 +69,7 @@ lazy val es4kafka = (project in file("es4kafka"))
         exclude("com.typesafe.akka", "akka-stream_2.13")
         exclude("org.apache.kafka", "kafka-clients"),
       // avro schema registry
-      "com.davideicardi" %% "kaa" % "0.4.4"
+      "com.davideicardi" %% "kaa" % "0.4.5"
         exclude("org.apache.kafka", "kafka-clients"),
       // logging (for kafka)
       "ch.qos.logback" % "logback-classic" % "1.2.3"
@@ -78,7 +77,7 @@ lazy val es4kafka = (project in file("es4kafka"))
       // retry library
       "com.softwaremill.retry" %% "retry" % "0.3.3",
     ),
-    libraryDependencies ++= testDependencies("test")
+    libraryDependencies ++= testDependencies("test"),
   )
 
 lazy val es4kafkaTest = (project in file("es4kafka-test"))
