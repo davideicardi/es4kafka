@@ -65,8 +65,8 @@ abstract class CommandSenderBase[TKey, TCommand <: Command[TKey], TEvent <: Even
       }(retry.Success.option, executionContext)
   }
 
-  def close(): Unit = {
-    val _ = Await.result(producer.close(), 1.minute)
+  def close(maxWait: Duration): Unit = {
+    val _ = Await.result(producer.close(), maxWait)
   }
 
   private def fetchEvent(

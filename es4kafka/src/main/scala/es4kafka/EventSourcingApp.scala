@@ -10,15 +10,33 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration._
 import scala.jdk.DurationConverters._
 import org.apache.kafka.streams.KafkaStreams.State
+import com.davideicardi.kaa.KaaSchemaRegistry
+import es4kafka.streaming.StreamingPipelineBase
+import es4kafka.streaming.MetadataService
 
 trait EventSourcingApp {
 
+  // abstract
   val serviceConfig: ServiceConfig
   val controllers: Seq[RouteController]
-  val streams: KafkaStreams
-  implicit val system: ActorSystem
-  implicit val ec: ExecutionContextExecutor = ExecutionContext.global
+  val streamingPipeline: StreamingPipelineBase
 
+  // Config
+  val SHUTDOWN_MAX_WAIT = 20.seconds
+
+  // Akka
+  implicit lazy val system: ActorSystem = ActorSystem(serviceConfig.applicationId)
+  implicit lazy val ec: ExecutionContextExecutor = ExecutionContext.global
+
+  // kafka streams
+  lazy val schemaRegistry = new KaaSchemaRegistry(serviceConfig.kafkaBrokers)
+  lazy val streams: KafkaStreams = new KafkaStreams(
+    streamingPipeline.createTopology(),
+    streamingPipeline.properties)
+  lazy val hostInfoService = new HostInfoServices(serviceConfig.httpEndpoint)
+  lazy val metadataService = new MetadataService(streams, hostInfoService)
+
+  // http
   lazy val restService = new AkkaHttpServer(
     serviceConfig.httpEndpoint,
     controllers)
@@ -37,8 +55,8 @@ trait EventSourcingApp {
     streams.setStateListener((newState, _) => {
       println(s"KafkaStream state is $newState")
 
-      if (newState == State.ERROR)
-        shutDown()
+      if (newState == State.ERROR || newState == State.PENDING_SHUTDOWN)
+        shutDown(stopStreams = false) // do not call `close` on streams as per documentation
     })
 
     restService.start()
@@ -74,12 +92,24 @@ trait EventSourcingApp {
     println("Exiting...")
   }
 
-  protected val SHUTDOWN_MAX_WAIT = 20.seconds
-  protected def shutDown(): Unit = {
+  private def shutDown(stopStreams: Boolean = true): Unit = {
     println("Shutting down...")
+
+    // http
     restService.stop(SHUTDOWN_MAX_WAIT)
-    streams.close(SHUTDOWN_MAX_WAIT.toJava)
+
     onShutdown(SHUTDOWN_MAX_WAIT)
+
+    // kafka streams
+    if (stopStreams)
+      streams.close(SHUTDOWN_MAX_WAIT.toJava)
+
+    // schema registry
+    schemaRegistry.close(SHUTDOWN_MAX_WAIT)
+
+    // akka
+    system.terminate()
+
     doneSignal.countDown()
   }
 

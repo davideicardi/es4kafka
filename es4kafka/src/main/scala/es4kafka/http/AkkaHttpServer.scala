@@ -35,12 +35,12 @@ class AkkaHttpServer(
   }
 
   def stop(maxWait: Duration): Unit = {
-    bindingFuture
-      .foreach(_
+    val terminateHttp = bindingFuture
+      .map(_
         .flatMap(_.unbind()) // trigger unbinding from the port
       )
 
-    Await.ready(bindingFuture.getOrElse(Future.successful(Done)), maxWait)
+    Await.ready(terminateHttp.getOrElse(Future.successful(Done)), maxWait)
 
     bindingFuture = None
   }
