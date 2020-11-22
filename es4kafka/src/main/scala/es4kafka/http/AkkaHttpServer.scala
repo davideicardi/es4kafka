@@ -6,6 +6,8 @@ import akka.http.scaladsl.server.Directives._
 import org.apache.kafka.streams.state.HostInfo
 
 import scala.concurrent._
+import scala.concurrent.duration.Duration
+import akka.Done
 
 class AkkaHttpServer(
                     hostInfo: HostInfo,
@@ -30,18 +32,16 @@ class AkkaHttpServer(
         .bindFlow(route)
     }
     println(s"Server online at http://${hostInfo.host}:${hostInfo.port}/\n")
-
-    Runtime.getRuntime.addShutdownHook(new Thread(() => {
-      stop()
-    }))
   }
 
-  def stop(): Unit = {
+  def stop(maxWait: Duration): Unit = {
     bindingFuture
       .foreach(_
         .flatMap(_.unbind()) // trigger unbinding from the port
-        .onComplete(_ => system.terminate()) // and shutdown when done
       )
+
+    Await.ready(bindingFuture.getOrElse(Future.successful(Done)), maxWait)
+
     bindingFuture = None
   }
 }

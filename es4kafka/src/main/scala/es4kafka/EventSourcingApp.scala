@@ -7,6 +7,9 @@ import es4kafka.http.{AkkaHttpServer, RouteController}
 import org.apache.kafka.streams.KafkaStreams
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.concurrent.duration._
+import scala.jdk.DurationConverters._
+import org.apache.kafka.streams.KafkaStreams.State
 
 trait EventSourcingApp {
 
@@ -33,6 +36,9 @@ trait EventSourcingApp {
 
     streams.setStateListener((newState, _) => {
       println(s"KafkaStream state is $newState")
+
+      if (newState == State.ERROR)
+        shutDown()
     })
 
     restService.start()
@@ -43,6 +49,7 @@ trait EventSourcingApp {
       shutDown()
     }))
 
+    // TODO Verify how to handle clean local state
     // Always (and unconditionally) clean local state prior to starting the processing topology.
     // We opt for this unconditional call here because this will make it easier for you to
     // play around with the example when resetting the application for doing a re-run
@@ -63,11 +70,18 @@ trait EventSourcingApp {
     streams.start()
 
     doneSignal.await()
+
+    println("Exiting...")
   }
 
+  protected val SHUTDOWN_MAX_WAIT = 20.seconds
   protected def shutDown(): Unit = {
+    println("Shutting down...")
+    restService.stop(SHUTDOWN_MAX_WAIT)
+    streams.close(SHUTDOWN_MAX_WAIT.toJava)
+    onShutdown(SHUTDOWN_MAX_WAIT)
     doneSignal.countDown()
-    streams.close()
-    restService.stop()
   }
+
+  protected def onShutdown(maxWait: Duration): Unit
 }

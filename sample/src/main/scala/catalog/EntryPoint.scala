@@ -16,6 +16,7 @@ import es4kafka.administration.KafkaTopicAdmin
 import es4kafka.http.{MetadataRoutes, RouteController}
 import es4kafka.streaming._
 import org.apache.kafka.streams.KafkaStreams
+import scala.concurrent.duration.Duration
 
 object EntryPoint extends App with EventSourcingApp with AvroSerdes with JsonFormats {
   val serviceConfig: ServiceConfig = Config
@@ -86,8 +87,7 @@ object EntryPoint extends App with EventSourcingApp with AvroSerdes with JsonFor
 
   run()
 
-  override protected def shutDown(): Unit = {
-    super.shutDown()
+  protected override def onShutdown(maxWait: Duration): Unit = {
     authorsCommandSender.close()
     booksCommandSender.close()
     schemaRegistry.close()
