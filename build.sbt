@@ -90,7 +90,7 @@ lazy val es4kafkaTest = (project in file("es4kafka-test"))
   )
   .dependsOn(es4kafka)
 
-lazy val sample = (project in file("sample"))
+lazy val sample_books_catalog = (project in file("examples/books-catalog"))
   .settings(
     name := "sample-books-catalog",
     publish / skip := true,
@@ -98,5 +98,13 @@ lazy val sample = (project in file("sample"))
   )
   .dependsOn(es4kafka, es4kafkaTest % "test")
 
+lazy val sample_bank_account = (project in file("examples/bank-account"))
+  .settings(
+    name := "sample-bank-account",
+    publish / skip := true,
+    libraryDependencies ++= testDependencies("test"),
+  )
+  .dependsOn(es4kafka, es4kafkaTest % "test")
+
 lazy val root = (project in file("."))
-  .aggregate(es4kafka, sample, es4kafkaTest)
+  .aggregate(es4kafka, sample_books_catalog, sample_bank_account, es4kafkaTest)
