@@ -17,6 +17,12 @@ class StreamingPipeline @Inject()(
   def builder(): StreamsBuilder = {
     val streamBuilder = new StreamsBuilder
 
+    /*
+    Topology:
+    events --GROUP_BY_KEY_AND_AGGREGATE--> snapshots_table
+    commands --LEFT_JOIN--> snapshots_table --TO--> events
+    */
+
     val movementsStream = streamBuilder.stream[String, Movement](Config.topicMovements)
     val operationsStream = streamBuilder.stream[String, Operation](Config.topicOperations)
 
