@@ -8,6 +8,7 @@ Event driven/event sourcing microservice example written with:
     - [Kafka Streams - Interactive Queries](https://docs.confluent.io/current/streams/developer-guide/interactive-queries.html)
 - [Akka Http](https://doc.akka.io/docs/akka-http/current/index.html)
 - [Kaa Schema Registry](https://github.com/davideicardi/kaa)
+- [Guice](https://github.com/google/guice/wiki)
 
 ## Patterns
 
@@ -18,12 +19,11 @@ Event driven/event sourcing microservice example written with:
 
 ## Domain Model
 
-In this example I want to implement a very simple books catalog.
-The user can insert authors, books and can get the books for a specific author:
+In this example I want to implement a very simple books catalog, where the user insert a list of authors, a list of books and can query the books for a specific author:
 
 ![domain-model](docs/domain-model.drawio.png)
 
-NOTE: For the current model this is for sure an over-kill architecture, but the idea is just to keep the model simple to focus on the architectural patterns.
+NOTE: For the current model this is for sure an over-kill architecture, but the idea is just to keep the model simple for demonstration purpose.
 
 ## Logical Architecture
 
@@ -57,6 +57,18 @@ In this case the public interace is composed by:
 Other microservice should just rely on this public interface. Potentially the implementation can change,
 we can use another technology instead of Kafka Streams, but the public interface can remain the same.
 
+## Modular
+
+A modular approach is used to allow each service which feature to use. Currently the following modules are available:
+
+- Avro
+- Akka Http
+- Akka Stream
+- Kafka
+- Kafka Streams
+
+New modules can be added.
+
 ## Why?
 
 Why CQRS?
@@ -83,6 +95,10 @@ Why JVM?
 Why Scala?
 - It supports Java but with a functional approach and less verbose
 
+Why Guice?
+- Dependency injection framework for Java by Google
+- [scala-guice](https://github.com/codingwell/scala-guice) used for a better scala experience
+
 Why Kafka?
 - Fast, scalable and reliable storage
 - It can be used for both storage and message bus (Reduce infrastructure components)
@@ -95,10 +111,15 @@ Why Kafka Streams?
 - disadvantages:
     - quite hard to find good examples
     - reset state can be difficult
+- It should be used for all Kafka-to-Kafka pipelines
 
 Why Akka Http?
 - Good framework for REST API with a rich ecosystem (Akka, Akka Stream, Alpakka, ...)
-- We can use Akka also for Kafka ingestion and for distribution, see [Alpakka](https://doc.akka.io/docs/alpakka/current/index.html))
+
+Why Akka Stream?
+- Framework for executing arbitrary streaming pipelines
+- We can use Akka for Kafka load and export 
+- Multiple connectors available: see [Alpakka](https://doc.akka.io/docs/alpakka/current/index.html))
 - Akka Stream can substitute Kafka Streams in certain scenarios
 
 Why AVRO?
@@ -155,6 +176,15 @@ HTTP RPC style API are available at: http://localhost:9081/
     - response body: event
 
 (see PostMan collection inside `./docs/books-catalog.postman_collection`)
+
+## Configurations
+
+The following environment variables are available:
+
+| ENV NAME      | DESCRIPTION       |DEFAULT         |
+|---------------|-------------------|----------------|
+|KAFKA_BROKERS  |Kafka brokers      | localhost:9092 |
+|LISTENING_ENDPOINT| HTTP API listening endpoint | localhost:9081 |
 
 ## Credits and other references
 

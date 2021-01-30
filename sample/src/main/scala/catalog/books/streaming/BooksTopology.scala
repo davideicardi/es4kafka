@@ -2,7 +2,7 @@ package catalog.books.streaming
 
 import catalog.Config
 import catalog.books._
-import catalog.serialization.AvroSerdes
+import es4kafka.serialization.CommonAvroSerdes._
 import com.davideicardi.kaa.SchemaRegistry
 import es4kafka.Envelop
 import org.apache.kafka.streams.scala.ImplicitConversions._
@@ -11,7 +11,11 @@ import org.apache.kafka.streams.scala.kstream.{KTable, Materialized}
 import org.apache.kafka.streams.state.Stores
 import java.util.UUID
 
-class BooksTopology(streamsBuilder: StreamsBuilder, val schemaRegistry: SchemaRegistry) extends AvroSerdes {
+class BooksTopology(
+    streamsBuilder: StreamsBuilder,
+)(
+    implicit schemaRegistry: SchemaRegistry
+) {
   // TODO eval where use persisted stores or windowed stores
 
   // STORES

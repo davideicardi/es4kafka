@@ -18,10 +18,10 @@ import org.apache.kafka.streams.scala.ImplicitConversions._
  */
 object DefaultEntityTopology {
   /**
-   * @tparam TKey type of command key
-   * @tparam TEntity type of the entity; must extend DefaultEntity trait
+   * @tparam TKey     type of command key
+   * @tparam TEntity  type of the entity; must extend DefaultEntity trait
    * @tparam TCommand type fo the command; must extend Command
-   * @tparam TEvent type of the Event; must extend Event
+   * @tparam TEvent   type of the Event; must extend Event
    * @param streamsBuilder the kafka stream builder
    * @param schemaRegistry the kafka schema registry
    * @param config         the AggregateConfig section for the entity, usually Config.EntityClassName
@@ -34,12 +34,12 @@ object DefaultEntityTopology {
     TCommand >: Null <: Command[TKey] : SchemaFor : Encoder : Decoder,
     TEvent >: Null <: Event : SchemaFor : Encoder : Decoder
   ](
-       streamsBuilder: StreamsBuilder,
-       schemaRegistry: SchemaRegistry,
-       config: AggregateConfig,
-       keyAvroSerde: Serde[TKey],
-       draft: => TEntity,
-   ): Unit = {
+      streamsBuilder: StreamsBuilder,
+      schemaRegistry: SchemaRegistry,
+      config: AggregateConfig,
+      keyAvroSerde: Serde[TKey],
+      draft: => TEntity,
+  ): Unit = {
     // avro serializers
     implicit val keySerde: Serde[TKey] = keyAvroSerde
     implicit val commandSerde: GenericSerde[Envelop[TCommand]] = new GenericSerde(schemaRegistry)
@@ -53,7 +53,7 @@ object DefaultEntityTopology {
     // STORES
     // This is the store used inside the DestinationCommandHandler, to verify code uniqueness.
     val storeSnapshots =
-      Stores.inMemoryKeyValueStore(config.storeSnapshots)
+    Stores.inMemoryKeyValueStore(config.storeSnapshots)
     // maybe it is better to use a windowed store (last day?) to avoid having to much data, we don't need historical data for this
     val storeEventsByMsgId =
       Stores.inMemoryKeyValueStore(config.storeEventsByMsgId)

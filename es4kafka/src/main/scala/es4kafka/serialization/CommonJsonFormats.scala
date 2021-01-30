@@ -1,7 +1,6 @@
 package es4kafka.serialization
 
 import java.util.UUID
-
 import es4kafka.MsgId
 import es4kafka.streaming.MetadataStoreInfo
 import spray.json.DefaultJsonProtocol
@@ -30,16 +29,5 @@ trait CommonJsonFormats extends DefaultJsonProtocol {
     def read(json: JsValue): MsgId = MsgId(json.convertTo[UUID])
   }
 
-  class EnumJsonConverter[T <: scala.Enumeration](enu: T) extends RootJsonFormat[T#Value] {
-    override def write(obj: T#Value): JsValue = JsString(obj.toString)
-
-    override def read(json: JsValue): T#Value = {
-      json match {
-        case JsString(txt) => enu.withName(txt)
-        case somethingElse => throw DeserializationException(s"Expected a value from enum $enu instead of $somethingElse")
-      }
-    }
-  }
-
-  implicit val EntityStateFormat: RootJsonFormat[EntityStates.EntityState] = new EnumJsonConverter(EntityStates)
+  implicit val EntityStateFormat: RootJsonFormat[EntityStates.EntityState] = new EnumJsonFormat(EntityStates)
 }

@@ -18,3 +18,7 @@ case class UnknownBookCommand(id: UUID) extends BookCommand
 case class CreateBook(title: String, id: UUID = UUID.randomUUID()) extends BookCommand
 @AvroSortPriority(-2)
 case class SetBookAuthor(id: UUID, author: Option[String]) extends BookCommand
+@AvroSortPriority(-3)
+case class AddChapter(id: UUID, title: String, content: String) extends BookCommand
+@AvroSortPriority(-4)
+case class RemoveChapter(id: UUID, chapterId: Int) extends BookCommand

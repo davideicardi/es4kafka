@@ -1,28 +1,34 @@
 package catalog
 
-import com.davideicardi.kaa.SchemaRegistry
-import es4kafka.ServiceConfig
-import es4kafka.streaming.StreamingPipelineBase
-import org.apache.kafka.streams.Topology
-import org.apache.kafka.streams.scala._
 import catalog.authors.streaming.AuthorsTopology
 import catalog.books.streaming.BooksTopology
 import catalog.booksCards.streaming.BooksCardsTopology
+import com.davideicardi.kaa.SchemaRegistry
+import es4kafka.Inject
+import es4kafka.configs.ServiceConfigKafkaStreams
+import es4kafka.logging.Logger
+import es4kafka.streaming.TopologyBuilder
+import org.apache.kafka.streams.scala._
 
-class StreamingPipeline(
-                         val serviceConfig: ServiceConfig,
-                         schemaRegistry: SchemaRegistry,
-                       ) extends StreamingPipelineBase {
+class StreamingPipeline @Inject()(
+    val serviceConfig: ServiceConfigKafkaStreams,
+)(
+    implicit logger: Logger,
+    schemaRegistry: SchemaRegistry,
+) extends TopologyBuilder {
 
-  def createTopology(): Topology = {
+  def builder(): StreamsBuilder = {
     val streamBuilder = new StreamsBuilder
 
-    val authors = new AuthorsTopology(streamBuilder, schemaRegistry)
+    logger.info("Create authors topology ...")
+    val authors = new AuthorsTopology(streamBuilder)
 
-    val books = new BooksTopology(streamBuilder, schemaRegistry)
+    logger.info("Create books topology ...")
+    val books = new BooksTopology(streamBuilder)
 
-    new BooksCardsTopology(schemaRegistry, books.snapshotTable, authors.snapshotTable)
+    logger.info("Create bookcards topology ...")
+    new BooksCardsTopology(books.snapshotTable, authors.snapshotTable)
 
-    streamBuilder.build()
+    streamBuilder
   }
 }

@@ -38,7 +38,7 @@ case class Author(
                    code: String = "",
                    firstName: String = "",
                    lastName: String = ""
-                 ) {
+                 ) extends StatefulEntity {
   def handle(command: AuthorCommand): AuthorEvent = {
     state match {
       case EntityStates.DRAFT => draftHandle(command)
