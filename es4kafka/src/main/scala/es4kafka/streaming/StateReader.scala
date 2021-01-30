@@ -6,62 +6,71 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import org.apache.kafka.common.serialization.Serde
-import org.apache.kafka.streams.KafkaStreams
-import org.apache.kafka.streams.state.QueryableStoreTypes
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
-import org.apache.kafka.streams.state.ReadOnlyKeyValueStore
 
 trait StateReader[TKey, TValue] {
+  // abstract variables
   protected implicit val actorSystem: ActorSystem
-  protected implicit val executionContext: ExecutionContext = actorSystem.dispatcher
   protected val metadataService: MetadataService
-  protected val streams: KafkaStreams
-  protected val keySerde: Serde[TKey]
-  protected implicit val valueJsonFormat: RootJsonFormat[TValue]
-  protected val storeName: String
+  protected val stateStoreAccessor: KeyValueStateStoreAccessor
+  protected implicit val keySerde: Serde[TKey]
+  protected implicit val valueFormat: RootJsonFormat[TValue]
 
-  protected def getFetchAllRemotePath(): String
-  protected def getFetchOneRemotePath(key: TKey): String
+  protected implicit val executionContext: ExecutionContext = actorSystem.dispatcher
 
-  def fetchAll(onlyLocal: Boolean): Future[Seq[TValue]] = {
+  protected def fetchAll(
+      storeName: => String,
+      remoteHttpPath: => String,
+      onlyLocal: Boolean,
+  ): Future[Seq[TValue]] = {
     if (onlyLocal)
-      fetchAllLocal()
+      fetchAllLocal(storeName)
     else
-      fetchAllRemotes()
+      fetchAllRemotes(storeName, remoteHttpPath)
   }
 
-  def fetchOne(key: TKey): Future[Option[TValue]] = {
+  protected def fetchOne(
+      storeName: TKey => String,
+      remoteHttpPath: TKey => String,
+      key: TKey,
+  ): Future[Option[TValue]] = {
+
     val hostForStore = metadataService.hostForStoreAndKey(
-      storeName,
+      storeName(key),
       key,
       keySerde.serializer()
     )
 
     hostForStore.map(metadata => {
       if (metadata.isLocal)
-        fetchOneLocal(key)
+        fetchOneLocal(storeName, key)
       else
-        fetchOneRemote(metadata, key)
+        fetchOneRemote(remoteHttpPath, metadata, key)
     }).getOrElse(Future(None))
   }
 
-  protected def fetchAllRemotes(): Future[Seq[TValue]] = {
+  protected def fetchAllRemotes(
+      storeName: => String,
+      remoteHttpPath: => String,
+  ): Future[Seq[TValue]] = {
     // TODO We can optimize this to avoid do a remote call for local host
     val futureList = metadataService.hostsForStore(storeName)
       .map(host => {
-        fetchAllRemote(host)
+        fetchAllRemote(remoteHttpPath, host)
       })
 
     Future.sequence(futureList)
       .map(_.flatten)
   }
 
-  protected def fetchAllLocal(): Future[Seq[TValue]] = Future {
-    getStore().map { store =>
+  protected def fetchAllLocal(
+      storeName: => String,
+  ): Future[Seq[TValue]] = Future {
+    stateStoreAccessor.getStore[TKey, TValue](storeName).map { store =>
       val iterator = store.all()
       try {
         iterator.asScala.toSeq.map(_.value)
@@ -71,30 +80,30 @@ trait StateReader[TKey, TValue] {
     }.getOrElse(Seq[TValue]())
   }
 
-  protected def fetchOneLocal(key: TKey): Future[Option[TValue]] = Future {
-    getStore().flatMap(s => Option(s.get(key)))
+  protected def fetchOneLocal(
+      storeName: TKey => String,
+      key: TKey,
+  ): Future[Option[TValue]] = Future {
+    stateStoreAccessor.getStore[TKey, TValue](storeName(key)).flatMap(s => Option(s.get(key)))
   }
 
-  protected def getStore(): Option[ReadOnlyKeyValueStore[TKey, TValue]] = {
-    StateStores.waitUntilStoreIsQueryable(
-      storeName,
-      QueryableStoreTypes.keyValueStore[TKey, TValue](),
-      streams
-    )
-  }
-
-  protected def fetchAllRemote(host: MetadataStoreInfo): Future[Seq[TValue]] = {
-    val requestPath = getFetchAllRemotePath()
-    val requestUri = s"http://${host.host}:${host.port}/$requestPath"
+  protected def fetchAllRemote(
+      remoteHttpPath: => String,
+      host: MetadataStoreInfo,
+  ): Future[Seq[TValue]] = {
+    val requestUri = s"http://${host.host}:${host.port}/$remoteHttpPath"
     Http().singleRequest(HttpRequest(uri = requestUri))
       .flatMap { response =>
         Unmarshal(response.entity).to[Seq[TValue]]
       }
   }
 
-  protected def fetchOneRemote(host: MetadataStoreInfo, key: TKey): Future[Option[TValue]] = {
-    val requestPath = getFetchOneRemotePath(key)
-    val requestUri = s"http://${host.host}:${host.port}/$requestPath"
+  protected def fetchOneRemote(
+      remoteHttpPath: TKey => String,
+      host: MetadataStoreInfo,
+      key: TKey,
+  ): Future[Option[TValue]] = {
+    val requestUri = s"http://${host.host}:${host.port}/${remoteHttpPath(key)}"
     Http().singleRequest(HttpRequest(uri = requestUri))
       .flatMap { response =>
         if (response.status == StatusCodes.NotFound)

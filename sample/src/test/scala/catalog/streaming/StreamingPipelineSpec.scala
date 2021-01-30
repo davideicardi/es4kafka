@@ -1,24 +1,34 @@
 package catalog.streaming
 
-import java.util.UUID
-
 import catalog.authors._
 import catalog.books._
+
 import catalog.booksCards._
-import catalog.serialization.AvroSerdes
 import catalog.{Config, StreamingPipeline}
+import com.davideicardi.kaa.SchemaRegistry
 import com.davideicardi.kaa.test.TestSchemaRegistry
 import es4kafka._
-import es4kafka.streaming.StreamingPipelineBase
+import es4kafka.logging.Logger
 import es4kafka.testing._
+import es4kafka.serialization.CommonAvroSerdes._
 import org.apache.kafka.streams.TopologyTestDriver
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 
-class StreamingPipelineSpec extends AnyFunSpec with Matchers with AvroSerdes {
-  val schemaRegistry = new TestSchemaRegistry
+import java.util.UUID
 
-  val target: StreamingPipelineBase = new StreamingPipeline(Config, schemaRegistry)
+class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
+  implicit val schemaRegistry: SchemaRegistry = new TestSchemaRegistry
+
+  implicit val logger: Logger = mockLogger()
+  def mockLogger(): Logger = {
+    val logger = mock[Logger]
+    (logger.info _).expects(*).anyNumberOfTimes()
+    logger
+  }
+
+  private val target = new StreamingPipeline(Config)
 
   def createAuthorsTest(driver: TopologyTestDriver) =
     new EventSourcingTopologyTest[String, AuthorCommand, AuthorEvent, Author](Config.Author, driver)
@@ -30,6 +40,8 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with AvroSerdes {
         val cmdId1 = authorsTest.pipeCommand(CreateAuthor("spider-man", "Peter", "Parker"))
         val cmdId2 = authorsTest.pipeCommand(CreateAuthor("superman", "Clark", "Kent"))
         val cmdId3 = authorsTest.pipeCommand(UpdateAuthor("spider-man", "Miles", "Morales"))
+
+        val snapshotsFromStore = authorsTest.readSnapshotsFromStore
 
         it("should generate events") {
           val events = authorsTest.readEvents
@@ -44,6 +56,12 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with AvroSerdes {
           snapshots should have size 2
           snapshots should contain("spider-man" -> Author("spider-man", "Miles", "Morales"))
           snapshots should contain("superman" -> Author("superman", "Clark", "Kent"))
+        }
+
+        it("should generate snapshots inside state store"){
+          snapshotsFromStore should have size 2
+          snapshotsFromStore should contain (Author("spider-man", "Miles", "Morales"))
+          snapshotsFromStore should contain (Author("superman", "Clark", "Kent"))
         }
       }
     }
@@ -108,6 +126,8 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with AvroSerdes {
         val cmdId2 = booksTest.pipeCommand(cmd2)
         val cmdId3 = booksTest.pipeCommand(SetBookAuthor(cmd1.id, Some("snow")))
 
+        val snapshotsFromStore = booksTest.readSnapshotsFromStore
+
         it("should generate events") {
           val events = booksTest.readEvents
 
@@ -122,6 +142,12 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with AvroSerdes {
           snapshots should have size 2
           snapshots should contain(cmd1.key -> Book(cmd1.id, cmd1.title, author = Some("snow")))
           snapshots should contain(cmd2.key -> Book(cmd2.id, cmd2.title))
+        }
+
+        it("should generate snapshots inside state store"){
+          snapshotsFromStore should have size 2
+          snapshotsFromStore should contain(Book(cmd2.id, cmd2.title))
+          snapshotsFromStore should contain(Book(cmd1.id, cmd1.title, author = Some("snow")))
         }
       }
     }
@@ -166,8 +192,8 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with AvroSerdes {
   }
 
   def runTopology[T](testFun: TopologyTestDriver => T): T = {
-    val topology = target.createTopology()
-    val driver = new TopologyTestDriver(topology, target.properties)
+    val topology = target.builder().build()
+    val driver = new TopologyTestDriver(topology, Config.kafkaStreamProperties())
 
     try {
       testFun(driver)

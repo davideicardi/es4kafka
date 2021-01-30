@@ -1,25 +1,22 @@
 package es4kafka.administration
 
-import java.lang
-import java.util.{Optional, Properties}
-
 import com.davideicardi.kaa.KaaSchemaRegistry
-import es4kafka.{AggregateConfig, ProjectionConfig, ServiceConfig}
+import es4kafka.configs.ServiceConfigKafka
+import es4kafka.{AggregateConfig, ProjectionConfig}
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.{AdminClient, NewTopic}
+import org.apache.kafka.common.KafkaFuture
 import org.apache.kafka.common.config.TopicConfig
 import org.apache.kafka.common.errors.TopicExistsException
-import org.apache.kafka.common.KafkaFuture
 
-import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
-import scala.collection.mutable.{Map => MutableMap}
-import scala.util.Try
-import scala.util.Failure
-import scala.util.Success
+import java.lang
+import java.util.{Optional, Properties}
+import scala.collection.mutable.{ListBuffer, Map => MutableMap}
 import scala.concurrent._
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
+import scala.util._
 
 object KafkaTopicAdmin {
   def createProps(
@@ -39,7 +36,7 @@ class KafkaTopicAdmin(
   private val topics = new ListBuffer[TopicInfo]
   private val INFINITE_RETENTION: Long = -1
 
-  def this(config: ServiceConfig) = {
+  def this(config: ServiceConfigKafka) = {
     this(
       KafkaTopicAdmin.createProps(config.kafkaBrokers, config.applicationId),
     )
@@ -105,9 +102,9 @@ class KafkaTopicAdmin(
             adminClient.createTopics(Seq(newTopic).asJavaCollection).all()
           ), 20.seconds)
         } match {
-          case Failure(_: TopicExistsException) => {}
+          case Failure(_: TopicExistsException) =>
           case Failure(e) => throw e
-          case Success(_) => {}
+          case Success(_) =>
         }
       })
   }

@@ -6,19 +6,19 @@ import catalog.Config
 import catalog.authors.Author
 import catalog.books._
 import catalog.booksCards._
-import catalog.serialization.AvroSerdes
+import es4kafka.serialization.CommonAvroSerdes._
 import com.davideicardi.kaa.SchemaRegistry
 import org.apache.kafka.streams.scala.kstream._
 import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.state.Stores
 import es4kafka.EntityStates
 
-class BooksCardsTopology
-(
-  val schemaRegistry: SchemaRegistry,
-  bookTable: KTable[UUID, Book],
-  authorTable: KTable[String, Author],
-) extends AvroSerdes {
+class BooksCardsTopology(
+    bookTable: KTable[UUID, Book],
+    authorTable: KTable[String, Author],
+)(
+    implicit schemaRegistry: SchemaRegistry
+) {
 
   private val storeSnapshots =
     Stores.inMemoryKeyValueStore(Config.BookCard.storeSnapshots)

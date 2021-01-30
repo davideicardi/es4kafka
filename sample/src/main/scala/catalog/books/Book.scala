@@ -1,7 +1,6 @@
 package catalog.books
 
 import java.util.UUID
-
 import es4kafka._
 
 object Book {
@@ -9,22 +8,61 @@ object Book {
 }
 
 case class Book(
-                id: UUID = new UUID(0,0),
-                title: String = "",
-                author: Option[String] = None,
-               ) extends DefaultEntity[UUID, BookCommand, BookEvent, Book] {
+                 id: UUID = new UUID(0, 0),
+                 title: String = "",
+                 author: Option[String] = None,
+                 state: EntityStates.EntityState = EntityStates.VALID,
+                 chapters: Seq[Chapter] = Seq(),
+               ) extends DefaultEntity[UUID, BookCommand, BookEvent, Book] with StatefulEntity {
+  private def addChapter(chapter: Chapter): Book = {
+    val newChapters = chapters :+ chapter
+    this.copy(chapters = newChapters)
+  }
+
+  private def removeChapter(chapterId: Int): Book = {
+    val newChapters = chapters.filter(_.id != chapterId)
+    this.copy(chapters = newChapters)
+  }
+
+  private def nextChapterId(): Int = {
+    val maxId = chapters
+      .map(_.id)
+      .maxOption
+      .getOrElse(0)
+
+    maxId + 1
+  }
+
   def apply(event: BookEvent): Book = {
     event match {
       case ev: BookCreated => Book(ev.id, ev.title)
       case ev: BookAuthorSet => this.copy(author = ev.author)
+      case ev: ChapterAdded => this.addChapter(Chapter(ev.chapterId, ev.title, ev.content))
+      case ev: ChapterRemoved => this.removeChapter(ev.chapterId)
+      case _: BookError => this
       case _: UnknownBookEvent => throw new UnknownEventException(s"Unknown event for entity $id")
     }
   }
+
   def handle(command: BookCommand): BookEvent = {
     command match {
       case cmd: CreateBook => BookCreated(cmd.id, cmd.title)
       case cmd: SetBookAuthor => BookAuthorSet(cmd.id, cmd.author)
+      case cmd: AddChapter =>
+        ChapterAdded(cmd.id, nextChapterId(), cmd.title, cmd.content)
+      case cmd: RemoveChapter =>
+        if (!chapters.exists(_.id == cmd.chapterId)) {
+          BookError(cmd.id, "Invalid chapter position")
+        } else {
+          ChapterRemoved(cmd.id, cmd.chapterId)
+        }
       case _: UnknownBookCommand => throw new UnknownCommandException(s"Unknown command for entity $id")
     }
   }
 }
+
+case class Chapter(
+                  id: Int,
+                  title: String,
+                  content: String,
+                  )

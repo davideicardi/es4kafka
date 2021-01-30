@@ -1,10 +1,10 @@
-package es4kafka_test.serialization
-
-import java.io.ByteArrayOutputStream
+package es4kafka.serialization
 
 import com.sksamuel.avro4s._
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.io.ByteArrayOutputStream
 
 object SampleV1 {
   sealed trait Fruit

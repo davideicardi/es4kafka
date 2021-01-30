@@ -1,16 +1,14 @@
 package catalog.books.http
 
 import java.util.UUID
-
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import catalog.Config
 import catalog.books._
-import catalog.serialization.JsonFormats
+import catalog.serialization.JsonFormats._
 import es4kafka._
-import es4kafka.streaming.SnapshotStateReader
+import es4kafka.streaming.{CommandSender, SnapshotStateReader}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
@@ -18,14 +16,14 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 
-class BooksRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest with MockFactory with JsonFormats {
+class BooksRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest with MockFactory {
 
   private def targetRoute(
                          commandSender: CommandSender[UUID, BookCommand, BookEvent] = mock[CommandSender[UUID, BookCommand, BookEvent]],
                          stateReader: SnapshotStateReader[UUID, Book] = mock[SnapshotStateReader[UUID, Book]],
                          ) = {
     Route.seal {
-      new BooksRoutes(commandSender, stateReader, Config.Book)
+      new BooksRoutes(commandSender, stateReader)
         .createRoute()
     }
   }

@@ -6,7 +6,18 @@
         </encoder>
     </appender>
 
-    <root level="warn">
+    <!--
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/service.log</file>
+        <encoder>
+            <pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</pattern>
+        </encoder>
+    </appender>
+    -->
+    
+    <root level="info">
         <appender-ref ref="STDOUT" />
+        <!-- Enable this to log to a file -->
+        <!-- <appender-ref ref="FILE" /> -->
     </root>
 </configuration>

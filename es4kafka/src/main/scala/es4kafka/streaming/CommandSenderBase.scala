@@ -1,48 +1,41 @@
-package es4kafka
-
-import java.util.UUID
+package es4kafka.streaming
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.kafka.ProducerSettings
-import akka.kafka.scaladsl.SendProducer
-import es4kafka.streaming.{MetadataService, MetadataStoreInfo, StateStores}
+import es4kafka.kafka.ProducerFactory
+import es4kafka.{Command, Envelop, Event, MsgId}
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{Serde, Serdes}
-import org.apache.kafka.streams.KafkaStreams
-import org.apache.kafka.streams.state.QueryableStoreTypes
 import spray.json._
 
+import java.util.UUID
+import scala.concurrent._
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
-
 
 abstract class CommandSenderBase[TKey, TCommand <: Command[TKey], TEvent <: Event]
 (
-  actorSystem: ActorSystem,
-  serviceConfig: ServiceConfig,
-  metadataService: MetadataService,
-  streams: KafkaStreams,
-) (
-  implicit keyAvroSerde: Serde[TKey],
-  commandAvroSerde: Serde[Envelop[TCommand]],
-  eventJsonFormat: RootJsonFormat[TEvent],
+    actorSystem: ActorSystem,
+    metadataService: MetadataService,
+    keyValueStateStoreAccessor: KeyValueStateStoreAccessor,
+    producerFactory: ProducerFactory,
+)(
+    implicit keyAvroSerde: Serde[TKey],
+    commandAvroSerde: Serde[Envelop[TCommand]],
+    eventJsonFormat: RootJsonFormat[TEvent],
 ) {
 
   private implicit val system: ActorSystem = actorSystem
   private implicit val executionContext: ExecutionContext = system.dispatcher
 
-  private val producerSettings = ProducerSettings(actorSystem, keyAvroSerde.serializer(), commandAvroSerde.serializer())
-    .withBootstrapServers(serviceConfig.kafkaBrokers)
-  private val producer = SendProducer(producerSettings)(actorSystem)
+  private val producer = producerFactory.producer[TKey, Envelop[TCommand]]()
   private val msgIdSerde = Serdes.UUID()
 
   protected def send(
-    topicName: => String,
-    command: TCommand,
+      topicName: => String,
+      command: TCommand,
   ): Future[MsgId] = {
     val msgId = MsgId.random()
     val envelop = Envelop(msgId, command)
@@ -52,27 +45,23 @@ abstract class CommandSenderBase[TKey, TCommand <: Command[TKey], TEvent <: Even
   }
 
   protected def wait(
-    storeName: => String,
-    remoteHttpPath: MsgId => String,
-    id: MsgId,
-    retries: Int,
-    delay: FiniteDuration,
+      storeName: => String,
+      remoteHttpPath: MsgId => String,
+      id: MsgId,
+      retries: Int,
+      delay: FiniteDuration,
   ): Future[Option[TEvent]] = {
     retry
       .Backoff(max = retries, delay = delay)
-      .apply{ () =>
+      .apply { () =>
         fetchEvent(id, storeName, remoteHttpPath)
       }(retry.Success.option, executionContext)
   }
 
-  def close(maxWait: Duration): Unit = {
-    val _ = Await.result(producer.close(), maxWait)
-  }
-
   private def fetchEvent(
-    key: MsgId,
-    storeName: => String,
-    remoteHttpPath: MsgId => String,
+      key: MsgId,
+      storeName: => String,
+      remoteHttpPath: MsgId => String,
   ): Future[Option[TEvent]] = {
     val hostForStore = metadataService.hostForStoreAndKey(
       storeName,
@@ -90,9 +79,9 @@ abstract class CommandSenderBase[TKey, TCommand <: Command[TKey], TEvent <: Even
   }
 
   private def fetchEventRemote(
-    host: MetadataStoreInfo,
-    key: MsgId,
-    remoteHttpPath: MsgId => String,
+      host: MetadataStoreInfo,
+      key: MsgId,
+      remoteHttpPath: MsgId => String,
   ): Future[Option[TEvent]] = {
     val requestPath = remoteHttpPath(key)
     val requestUri = s"http://${host.host}:${host.port}/$requestPath"
@@ -108,15 +97,11 @@ abstract class CommandSenderBase[TKey, TCommand <: Command[TKey], TEvent <: Even
   }
 
   private def fetchEventLocal(
-    key: MsgId,
-    storeName: => String,
+      key: MsgId,
+      storeName: => String,
   ): Future[Option[TEvent]] = Future {
-    val store = StateStores.waitUntilStoreIsQueryable(
-      storeName,
-      QueryableStoreTypes.keyValueStore[UUID, TEvent](),
-      streams
-    )
-
-    store.flatMap(s => Option(s.get(key.uuid)))
+    keyValueStateStoreAccessor
+      .getStore[UUID, TEvent](storeName)
+      .flatMap(s => Option(s.get(key.uuid)))
   }
 }

@@ -2,7 +2,7 @@ package catalog.authors.streaming
 
 import catalog.Config
 import catalog.authors._
-import catalog.serialization.AvroSerdes
+import es4kafka.serialization.CommonAvroSerdes._
 import com.davideicardi.kaa.SchemaRegistry
 import es4kafka.Envelop
 import org.apache.kafka.streams.scala.ImplicitConversions._
@@ -10,13 +10,17 @@ import org.apache.kafka.streams.scala.StreamsBuilder
 import org.apache.kafka.streams.scala.kstream.{KTable, Materialized}
 import org.apache.kafka.streams.state.Stores
 
-class AuthorsTopology(streamsBuilder: StreamsBuilder, val schemaRegistry: SchemaRegistry) extends AvroSerdes {
+class AuthorsTopology(
+    streamsBuilder: StreamsBuilder,
+)(
+    implicit schemaRegistry: SchemaRegistry
+) {
   // TODO eval where use persisted stores or windowed stores
 
   // STORES
   // This is the store used inside the AuthorCommandHandler, to verify code uniqueness.
   private val storeSnapshots =
-    Stores.inMemoryKeyValueStore(Config.Author.storeSnapshots)
+  Stores.inMemoryKeyValueStore(Config.Author.storeSnapshots)
   // maybe it is better to use a windowed store (last day?) to avoid having to much data, we don't need historical data for this
   private val storeEventsByMsgId =
     Stores.inMemoryKeyValueStore(Config.Author.storeEventsByMsgId)

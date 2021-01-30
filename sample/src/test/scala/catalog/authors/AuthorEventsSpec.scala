@@ -1,11 +1,11 @@
 package catalog.authors
 
-import catalog.serialization.JsonFormats
+import catalog.serialization.JsonFormats._
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
 
-class AuthorEventsSpec extends AnyFunSpec with Matchers with JsonFormats {
+class AuthorEventsSpec extends AnyFunSpec with Matchers {
   val events: Seq[AuthorEvent] = Seq(
     AuthorCreated("c1", "n1", "l1"),
     AuthorDeleted("c1"),

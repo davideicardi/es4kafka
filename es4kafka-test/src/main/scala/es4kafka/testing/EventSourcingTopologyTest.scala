@@ -37,4 +37,11 @@ class EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent, VSnapshot]
   def readSnapshots: Map[K, VSnapshot] = {
     snapshotOutputTopic.readValuesToMap()
   }
+
+  val keyValueStore: KeyValueStoreTest[K, VSnapshot] =
+    new KeyValueStoreTest[K, VSnapshot](driver, aggregateConfig.storeSnapshots)
+
+  def readSnapshotsFromStore: Seq[VSnapshot] = {
+    keyValueStore.readValuesToSeq()
+  }
 }

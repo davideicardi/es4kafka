@@ -4,11 +4,10 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import catalog.Config
 import catalog.authors._
-import catalog.serialization.JsonFormats
+import catalog.serialization.JsonFormats._
 import es4kafka._
-import es4kafka.streaming.SnapshotStateReader
+import es4kafka.streaming.{CommandSender, SnapshotStateReader}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
@@ -16,14 +15,14 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 
-class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest with MockFactory with JsonFormats {
+class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest with MockFactory {
 
   private def targetRoute(
                          commandSender: CommandSender[String, AuthorCommand, AuthorEvent] = mock[CommandSender[String, AuthorCommand, AuthorEvent]],
                          stateReader: SnapshotStateReader[String, Author] = mock[SnapshotStateReader[String, Author]],
                          ) = {
     Route.seal {
-      new AuthorsRoutes(commandSender, stateReader, Config.Author)
+      new AuthorsRoutes(commandSender, stateReader)
         .createRoute()
     }
   }

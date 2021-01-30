@@ -1,8 +1,6 @@
 package es4kafka.streaming
 
-import java.util.stream.Collectors
-
-import es4kafka.HostInfoServices
+import es4kafka.{HostInfoServices, Inject}
 import org.apache.kafka.common.serialization.Serializer
 import org.apache.kafka.streams.state.StreamsMetadata
 import org.apache.kafka.streams.{KafkaStreams, KeyQueryMetadata}
@@ -15,21 +13,20 @@ case class MetadataStoreInfo(isLocal: Boolean, host: String, port: Int)
  * Looks up StreamsMetadata from KafkaStreams
  * Code based on: https://github.com/sachabarber/KafkaStreamsDemo/
  */
-class MetadataService(
-                       streams: KafkaStreams,
-                       hostInfo: HostInfoServices,
-                     ) {
+class MetadataService @Inject()(
+    streams: KafkaStreams,
+    hostInfo: HostInfoServices,
+) {
   /**
    * Get the metadata for all of the instances of this Kafka Streams application
    *
    * @return List of { @link HostStoreInfo}
    */
-  def allHosts() : List[MetadataStoreInfo] = {
+  def allHosts(): Seq[MetadataStoreInfo] = {
     // Get metadata for all of the instances of this Kafka Streams application
     val metadata = streams.allMetadata
     mapInstancesToHostStoreInfo(metadata)
   }
-
 
   /**
    * Get the metadata for all instances of this Kafka Streams application that currently
@@ -38,7 +35,7 @@ class MetadataService(
    * @param store The store to locate
    * @return List of { @link HostStoreInfo}
    */
-  def hostsForStore(store: String) : List[MetadataStoreInfo] = {
+  def hostsForStore(store: String): Seq[MetadataStoreInfo] = {
     // Get metadata for all of the instances of this Kafka Streams application hosting the store
     val metadata = streams.allMetadataForStore(store)
     mapInstancesToHostStoreInfo(metadata)
@@ -52,7 +49,7 @@ class MetadataService(
    * @param key   The key to find
    * @return { @link HostStoreInfo}
    */
-  def hostForStoreAndKey[T](store: String, key: T, serializer: Serializer[T]) : Option[MetadataStoreInfo] = {
+  def hostForStoreAndKey[T](store: String, key: T, serializer: Serializer[T]): Option[MetadataStoreInfo] = {
     // Get metadata for the instances of this Kafka Streams application hosting the store and
     // potentially the value for key
     val metadata = streams.queryMetadataForKey(store, key, serializer)
@@ -64,14 +61,16 @@ class MetadataService(
     }
   }
 
-
-  private def mapInstancesToHostStoreInfo(metadataList : java.util.Collection[StreamsMetadata]) : List[MetadataStoreInfo] = {
-    metadataList.stream.map[MetadataStoreInfo](metadata =>
-      MetadataStoreInfo(
-        hostInfo.isThisHost(metadata.hostInfo()),
-        metadata.host(),
-        metadata.port))
-      .collect(Collectors.toList())
-      .asScala.toList
+  private def mapInstancesToHostStoreInfo(metadataList: java.util.Collection[StreamsMetadata]): Seq[MetadataStoreInfo] = {
+    metadataList
+      .asScala
+      .map(metadata =>
+        MetadataStoreInfo(
+          hostInfo.isThisHost(metadata.hostInfo()),
+          metadata.host(),
+          metadata.port
+        )
+      )
+      .toSeq
   }
 }

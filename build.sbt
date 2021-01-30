@@ -71,11 +71,14 @@ lazy val es4kafka = (project in file("es4kafka"))
       // avro schema registry
       "com.davideicardi" %% "kaa" % "0.4.5"
         exclude("org.apache.kafka", "kafka-clients"),
-      // logging (for kafka)
+      // logging
+      "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion,
       "ch.qos.logback" % "logback-classic" % "1.2.3"
         exclude("org.slf4j", "slf4j-api"),
       // retry library
       "com.softwaremill.retry" %% "retry" % "0.3.3",
+      // guice
+      "net.codingwell" %% "scala-guice" % "4.2.11",
     ),
     libraryDependencies ++= testDependencies("test"),
   )
