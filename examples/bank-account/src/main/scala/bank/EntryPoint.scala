@@ -9,7 +9,6 @@ object EntryPoint extends App {
   def installers: Seq[Module.Installer] = {
     Seq(
       new AvroModule.Installer(),
-      new AkkaStreamModule.Installer(),
       new KafkaModule.Installer(Config),
       new KafkaStreamsModule.Installer[StreamingPipeline](Config),
       new BankInstaller(),

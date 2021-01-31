@@ -2,14 +2,12 @@ package bank
 
 import com.davideicardi.kaa.SchemaRegistry
 import es4kafka.Inject
-import es4kafka.configs.ServiceConfigKafkaStreams
 import es4kafka.streaming.TopologyBuilder
 import es4kafka.serialization.CommonAvroSerdes._
 import org.apache.kafka.streams.scala._
 import org.apache.kafka.streams.scala.ImplicitConversions._
 
 class StreamingPipeline @Inject()(
-    val serviceConfig: ServiceConfigKafkaStreams,
 )(
     implicit schemaRegistry: SchemaRegistry,
 ) extends TopologyBuilder {
@@ -19,30 +17,31 @@ class StreamingPipeline @Inject()(
 
     /*
     Topology:
-    events --GROUP_BY_KEY_AND_AGGREGATE--> snapshots_table
-    commands --LEFT_JOIN--> snapshots_table --TO--> events
+    Group EVENTS stream by key and aggregate to SNAPSHOTS table.
+    Left join COMMANDS stream with the SNAPSHOTS table and output new EVENTS.
     */
 
+    // events
     val movementsStream = streamBuilder.stream[String, Movement](Config.topicMovements)
-    val operationsStream = streamBuilder.stream[String, Operation](Config.topicOperations)
-
+    // snapshots
     val accountTable = movementsStream
       .groupByKey
       .aggregate(Account(0)){ (_, movement, account) =>
         account.copy(balance = account.balance + movement.amount)
       }
-
+    accountTable.toStream.to(Config.topicAccounts)
+    // commands
+    val operationsStream = streamBuilder.stream[String, Operation](Config.topicOperations)
     operationsStream
-      .leftJoin(accountTable) { (operation, account) =>
-        if (account.balance > -operation.amount) {
+      .leftJoin(accountTable) { (operation, accountOrNull) =>
+        val account = Option(accountOrNull).getOrElse(Account(0))
+        if (account.balance >= -operation.amount) {
           Movement(operation.amount)
         } else {
           Movement(0, error = "insufficient funds")
         }
       }
       .to(Config.topicMovements)
-      
-    accountTable.toStream.to(Config.topicAccounts)
 
     streamBuilder
   }
