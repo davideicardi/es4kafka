@@ -105,7 +105,19 @@ class ServiceApp @Inject() (
    * Run the service
    * @param init Initialization function, here you should put any code that should run at startup
    */
-  def run(init: () => Unit): Unit = {
+  def startAndWait(init: () => Unit): Unit = {
+    start(init)
+
+    waitShutdown()
+  }
+
+  def waitShutdown(): Unit = {
+    doneSignal.await()
+
+    logger.info(s"${serviceConfig.applicationId}: Exit ...")
+  }
+
+  def start(init: () => Unit): Unit = {
     logger.info(s"${serviceConfig.applicationId}: Initialize...")
 
     // TODO Verify how to handle shutdown for k8s
@@ -126,10 +138,6 @@ class ServiceApp @Inject() (
     }
 
     logger.info(s"${serviceConfig.applicationId}: Running ...")
-
-    doneSignal.await()
-
-    logger.info(s"${serviceConfig.applicationId}: Exit ...")
   }
 
   def shutDown(reason: String): Unit = {

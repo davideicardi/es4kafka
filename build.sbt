@@ -49,6 +49,7 @@ def testDependencies(scope: String) = Seq(
   "org.scalatest" %% "scalatest-shouldmatchers" % scalaTestVersion % scope,
   "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % scope,
   "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % scope,
+  "io.github.embeddedkafka" %% "embedded-kafka" % kafkaVersion % scope,
 )
 
 lazy val es4kafka = (project in file("es4kafka"))
@@ -106,5 +107,5 @@ lazy val sample_bank_account = (project in file("examples/bank-account"))
   )
   .dependsOn(es4kafka, es4kafkaTest % "test")
 
-lazy val root = (project in file("."))
+lazy val es4kafka_root = (project in file("."))
   .aggregate(es4kafka, sample_books_catalog, sample_bank_account, es4kafkaTest)
