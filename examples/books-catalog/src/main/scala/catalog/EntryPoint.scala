@@ -42,7 +42,7 @@ object EntryPoint extends App {
   ServiceApp.create(
     Config,
     installers,
-  ).run(() => init())
+  ).startAndWait(() => init())
 }
 
 

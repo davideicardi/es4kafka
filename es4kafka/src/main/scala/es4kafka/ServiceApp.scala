@@ -1,7 +1,7 @@
 package es4kafka
 
 import akka.actor.ActorSystem
-import com.google.inject.Guice
+import com.google.inject.{Guice, Injector}
 import es4kafka.configs.ServiceConfig
 import es4kafka.logging._
 import es4kafka.modules._
@@ -15,8 +15,9 @@ import scala.jdk.CollectionConverters._
 object ServiceApp {
   /**
    * Create the main service app.
+   *
    * @param serviceConfig Main configuration
-   * @param installers List of modules installers
+   * @param installers    List of modules installers
    * @return The service app instance
    */
   def create(
@@ -28,11 +29,7 @@ object ServiceApp {
     try {
       val ec: ExecutionContext = system.dispatcher
 
-      val systemInstaller = new SystemInstaller(serviceConfig, system, ec)
-
-      val injector = Guice.createInjector(
-        (installers :+ systemInstaller).asJava
-      )
+      val injector = createInjector(serviceConfig, installers)(system, ec)
       import net.codingwell.scalaguice.InjectorExtensions._
       injector.instance[ServiceApp]
     } catch {
@@ -53,16 +50,26 @@ object ServiceApp {
         override val boundedContext: String = "verifyBindings"
       }
 
-      val systemInstaller = new SystemInstaller(serviceConfig, system, ec)
-
-      val injector = Guice.createInjector(
-        (installers :+ systemInstaller).asJava
-      )
-
+      val injector = createInjector(serviceConfig, installers)(system, ec)
       val _ = injector.getAllBindings
     } finally {
       terminateActorSystem(system)
     }
+  }
+
+  def createInjector(
+      serviceConfig: ServiceConfig,
+      installers: Seq[Module.Installer],
+  )(
+      implicit system: ActorSystem,
+      ec: ExecutionContext,
+  ): Injector = {
+    val systemInstaller = new SystemInstaller(serviceConfig, system, ec)
+
+    val injector = Guice.createInjector(
+      (installers :+ systemInstaller).asJava
+    )
+    injector
   }
 
   private def terminateActorSystem(actorSystem: ActorSystem): Unit = {
@@ -82,13 +89,14 @@ object ServiceApp {
       bind[ServiceApp].in[SingletonScope]()
     }
   }
+
 }
 
 trait ServiceAppController {
   def shutDown(reason: String): Unit
 }
 
-class ServiceApp @Inject() (
+class ServiceApp @Inject()(
     modules: Set[Module],
     serviceConfig: ServiceConfig,
     system: ActorSystem,
@@ -103,6 +111,7 @@ class ServiceApp @Inject() (
 
   /**
    * Run the service
+   *
    * @param init Initialization function, here you should put any code that should run at startup
    */
   def startAndWait(init: () => Unit): Unit = {
