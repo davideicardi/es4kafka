@@ -28,7 +28,7 @@ trait StateReader[TKey, TValue] {
       onlyLocal: Boolean,
   ): Future[Seq[TValue]] = {
     if (onlyLocal)
-      fetchAllLocal(storeName)
+      Future.successful(fetchAllLocal(storeName))
     else
       fetchAllRemotes(storeName, remoteHttpPath)
   }
@@ -69,7 +69,7 @@ trait StateReader[TKey, TValue] {
 
   protected def fetchAllLocal(
       storeName: => String,
-  ): Future[Seq[TValue]] = Future {
+  ): Seq[TValue] = {
     stateStoreAccessor.getStore[TKey, TValue](storeName).map { store =>
       val iterator = store.all()
       try {
