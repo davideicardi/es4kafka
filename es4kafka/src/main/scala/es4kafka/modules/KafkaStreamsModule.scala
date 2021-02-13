@@ -63,7 +63,7 @@ class KafkaStreamsModule @Inject()(
     kafkaStreams.setStateListener((newState, _) => {
       logger.info(s"KafkaStream state is $newState")
 
-      if (newState == State.ERROR || newState == State.PENDING_SHUTDOWN)
+      if (newState == State.ERROR)
         controller.shutDown(KSTREAM_ERROR_REASON)
     })
 
@@ -83,8 +83,10 @@ class KafkaStreamsModule @Inject()(
     // here but rather only when it is truly needed, i.e., only under certain conditions
     // (e.g., the presence of a command line flag for your app).
     // See `ApplicationResetExample.java` for a production-like example.
-    // logger.info("Cleanup KafkaStream...")
-    // streams.cleanUp()
+    if (serviceConfig.cleanUpState) {
+      logger.info("Cleanup KafkaStream...")
+      kafkaStreams.cleanUp()
+    }
 
     kafkaStreams.start()
   }

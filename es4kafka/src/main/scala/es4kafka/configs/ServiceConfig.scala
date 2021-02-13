@@ -1,22 +1,30 @@
 package es4kafka.configs
 
+import com.typesafe.config.{Config, ConfigFactory}
 import org.apache.kafka.streams.StreamsConfig
 import org.apache.kafka.streams.state.HostInfo
 
 import java.util.Properties
 
-trait ServiceConfig {
+trait BaseConfig {
+  lazy val config: Config = ConfigFactory.load()
+  lazy val es4KafkaConfig: Config = config.getConfig("es4kafka")
+}
+
+trait ServiceConfig extends BaseConfig {
   /**
    * Name of the application/microservice.
    * It will be used as Kafka applicationId and as a prefix for kafka streams internal topics.
    * Abstract.
    */
-  val applicationId: String
+  val applicationId: String =
+    es4KafkaConfig.getString("service.applicationId")
   /**
    * Name of the bounded context. It will be used as a prefix for topics.
    * Abstract.
    */
-  val boundedContext: String
+  val boundedContext: String =
+    es4KafkaConfig.getString("service.boundedContext")
 }
 
 trait ServiceConfigHttp {
@@ -42,7 +50,10 @@ trait ServiceConfigKafka extends ServiceConfig {
   def groupId(scenarioGroupId: String) = s"$applicationId-$scenarioGroupId"
 }
 
-trait ServiceConfigKafkaStreams extends ServiceConfigKafka with ServiceConfigHttp {
+trait ServiceConfigKafkaStreams extends BaseConfig with ServiceConfigKafka with ServiceConfigHttp {
+
+  val cleanUpState: Boolean =
+    es4KafkaConfig.getBoolean("kafkaStreams.cleanUpState")
 
   def kafkaStreamProperties(): Properties = {
     val properties = new Properties()

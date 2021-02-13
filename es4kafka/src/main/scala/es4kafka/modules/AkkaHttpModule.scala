@@ -33,6 +33,9 @@ class AkkaHttpModule @Inject()(
     system: ActorSystem,
     ec: ExecutionContext,
 ) extends Module {
+
+  override val priority: Int = -100
+
   private val hostInfo = serviceConfig.httpEndpoint
   private var bindingFuture: Option[Future[Http.ServerBinding]] = None
 

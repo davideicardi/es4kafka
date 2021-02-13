@@ -2,7 +2,6 @@ package es4kafka.akkaStream.kafka
 
 import akka.NotUsed
 import akka.kafka.ConsumerMessage._
-import akka.kafka.scaladsl.Consumer
 import akka.kafka.{ProducerMessage, Subscription}
 import akka.stream.scaladsl._
 import akka.stream.{FlowShape, Graph}
@@ -29,21 +28,10 @@ object KafkaGraphDsl {
         valueSerde: Serde[V],
     ): RunnableGraph[GraphControl] = {
       consumerFactory
-        .readTopicSource(scenarioGroupId, subscription)(keySerde, valueSerde)
+        .committableSource[K, V](scenarioGroupId, subscription)
         .via(processMessageFlow)
         .via(consumerFactory.committerFlow())
         .toMat(Sink.ignore)((l, r) => new GraphKafkaDrainingControl(l, r))
-    }
-
-    def readTopicSource[K, V](
-        scenarioGroupId: String,
-        subscription: Subscription,
-    )(
-        implicit keySerde: Serde[K],
-        valueSerde: Serde[V],
-    ): Source[CommittableMessage[K, V], Consumer.Control] = {
-      consumerFactory
-        .committableSource(scenarioGroupId, keySerde, valueSerde, subscription)
     }
   }
 

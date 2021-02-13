@@ -9,17 +9,21 @@ import akka.stream.scaladsl._
 import akka._
 import es4kafka.Inject
 import es4kafka.configs.ServiceConfigKafka
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.serialization.Serde
 
 import scala.concurrent.duration.Duration
 
 trait ConsumerFactory {
-  def committableSource[K, V](
+  def committableSource[K: Serde, V: Serde](
       scenarioGroupId: String,
-      serdeKey: Serde[K],
-      serdeValue: Serde[V],
       subscription: Subscription,
   ): Source[CommittableMessage[K, V], Control]
+
+  def plainSourceFromEarliest[K: Serde, V: Serde](
+      scenarioGroupId: String,
+      subscription: Subscription,
+  ): Source[ConsumerRecord[K, V], Control]
 
   def committerFlow(): Flow[ConsumerMessage.Committable, Done, NotUsed]
 }
@@ -28,14 +32,24 @@ class ConsumerFactoryImpl @Inject() (
     actorSystem: ActorSystem,
     serviceConfig: ServiceConfigKafka,
 ) extends ConsumerFactory {
-  def committableSource[K, V](
+  def committableSource[K: Serde, V: Serde](
       scenarioGroupId: String,
-      serdeKey: Serde[K],
-      serdeValue: Serde[V],
       subscription: Subscription,
   ): Source[CommittableMessage[K, V], Control] = {
+    val settings = consumerSettings(scenarioGroupId, implicitly[Serde[K]], implicitly[Serde[V]])
     Consumer
-      .committableSource(consumerSettings(scenarioGroupId, serdeKey, serdeValue), subscription)
+      .committableSource(settings, subscription)
+  }
+
+  def plainSourceFromEarliest[K: Serde, V: Serde](
+      scenarioGroupId: String,
+      subscription: Subscription,
+  ): Source[ConsumerRecord[K, V], Control] = {
+    val settings = consumerSettings(scenarioGroupId, implicitly[Serde[K]], implicitly[Serde[V]])
+      .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+      .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+    Consumer
+      .plainSource(settings, subscription)
   }
 
   def committerFlow(): Flow[ConsumerMessage.Committable, Done, NotUsed] = {

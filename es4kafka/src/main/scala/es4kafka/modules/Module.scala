@@ -25,7 +25,16 @@ object Module {
 }
 
 trait Module  {
+  /**
+   * Priority (from higher to lower) used to start modules.
+   * When stopping modules the reversed order is used.
+   * ie. the module with greater priority is started first and stopped last
+   */
+  val priority: Int = 0
+
   def start(controller: ServiceAppController): Unit
 
   def stop(maxWait: FiniteDuration, reason: String): Unit
+
+  override def toString: String = this.getClass.getSimpleName
 }

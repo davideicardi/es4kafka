@@ -26,6 +26,8 @@ object AvroModule {
 class AvroModule @Inject()(
     schemaRegistry: KaaSchemaRegistry,
 ) extends Module {
+  override val priority: Int = 100
+
   override def start(controller: ServiceAppController): Unit = {
   }
 
