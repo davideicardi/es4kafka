@@ -63,7 +63,7 @@ Another alternative is to send a commands to the appropriate `*.commands` topic 
 
 ### Bank account
 
-For example, to apply this pattern to a very simple bank account scenario I can have:
+To apply this pattern to a very simple bank account scenario I can have:
 
 - `operations` stream as "commands" (requests to deposit or withdraw an amount of money, eg. "deposit $10" => `Operation(+10)` )
 - `movements` stream as "events" (actual deposit or withdraw event, eg. "$10 deposited" => `Movement(+10)` )
@@ -104,12 +104,12 @@ This is a minimal example to demonstrate the event sourcing concepts.
 
 ### Books catalog
 
-In this example I want to implement a very simple books catalog, where the user insert authors, books and can query the books for a specific author. This example is written using additional conventions and pattern that can be useful for more complex use cases:
+In this example I want to implement a simple books catalog, where the user insert authors, books and can query the books for a specific author.
+This example is written using additional conventions and patterns that can be useful for more complex use cases:
 
 - using sealed traits for events and commands (`BookCommand`, `AuthorCommand`, `BookEvent`, `AuthorEvent`, ...)
-- using a class to handle the snapshots (`Book`, `Author`, ...)
-- interactive queries to read the entities
-- HTTP rpc layer
+- using a class to handle aggregates (aka: snapshots) (`Book`, `Author`, ...)
+- HTTP rpc layer using interactive queries to read the entities 
 
 ![domain-model](docs/domain-model.drawio.png)
 

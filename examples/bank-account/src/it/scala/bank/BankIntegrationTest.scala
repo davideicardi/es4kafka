@@ -21,8 +21,12 @@ class BankIntegrationTest extends ServiceAppIntegrationSpec("BankIntegrationTest
           _ <- writeKafkaRecords(injector, Config.topicOperations, operations)
           movements <- readAllKafkaRecords[String, Movement](injector, Config.topicMovements, take = 3)
         } yield {
-          println(movements)
           movements.size should be (3)
+          movements should be (Seq(
+            "alice" -> Movement(100),
+            "alice" -> Movement(100),
+            "alice" -> Movement(-200), // ERROR: Here I receive an insufficient founds instead
+          ))
         }
       }
     }
