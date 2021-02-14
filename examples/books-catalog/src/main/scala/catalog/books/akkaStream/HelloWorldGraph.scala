@@ -5,6 +5,7 @@ import akka.actor.Cancellable
 import akka.stream.scaladsl._
 import es4kafka._
 import es4kafka.akkaStream._
+import es4kafka.datetime.InstantProvider
 
 import scala.concurrent.duration.DurationInt
 
@@ -12,7 +13,9 @@ import scala.concurrent.duration.DurationInt
  * A simple example that show how to create an arbitrary Akka Stream pipeline.
  * It produce an hello world message every 5 seconds and print it.
  */
-class HelloWorldGraph @Inject() () extends GraphBuilder {
+class HelloWorldGraph @Inject() (
+    instantProvider: InstantProvider
+) extends GraphBuilder {
   override def createGraph(): RunnableGraph[GraphControl] = {
     GraphBuilder.fromSource(source)
   }
@@ -20,7 +23,7 @@ class HelloWorldGraph @Inject() () extends GraphBuilder {
   def source: Source[String, Cancellable] = {
     Source.tick(1.seconds, 5.seconds, NotUsed)
       .map { _ =>
-        val msg = "Hello world from Akka Stream!"
+        val msg = s"Hello world from Akka Stream! Current time is ${instantProvider.now()}"
         println(msg)
         msg
       }

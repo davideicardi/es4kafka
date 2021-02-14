@@ -4,8 +4,6 @@ import es4kafka._
 import es4kafka.configs.{ServiceConfig, ServiceConfigHttp, ServiceConfigKafkaStreams}
 
 object Config extends ServiceConfig with ServiceConfigHttp with ServiceConfigKafkaStreams {
-  val applicationId: String = "sample"
-  val boundedContext: String = "catalog"
   val defaultHttpEndpointPort: Integer = 9081
 
   object Author extends AggregateConfig {

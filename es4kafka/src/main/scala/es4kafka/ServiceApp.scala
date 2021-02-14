@@ -1,8 +1,9 @@
 package es4kafka
 
 import akka.actor.ActorSystem
-import com.google.inject.Guice
+import com.google.inject.{Guice, Injector}
 import es4kafka.configs.ServiceConfig
+import es4kafka.datetime.{DefaultInstantProvider, InstantProvider}
 import es4kafka.logging._
 import es4kafka.modules._
 
@@ -15,8 +16,9 @@ import scala.jdk.CollectionConverters._
 object ServiceApp {
   /**
    * Create the main service app.
+   *
    * @param serviceConfig Main configuration
-   * @param installers List of modules installers
+   * @param installers    List of modules installers
    * @return The service app instance
    */
   def create(
@@ -26,13 +28,7 @@ object ServiceApp {
     val system: ActorSystem = ActorSystem(serviceConfig.applicationId)
 
     try {
-      val ec: ExecutionContext = system.dispatcher
-
-      val systemInstaller = new SystemInstaller(serviceConfig, system, ec)
-
-      val injector = Guice.createInjector(
-        (installers :+ systemInstaller).asJava
-      )
+      val injector = createInjector(serviceConfig, installers)(system)
       import net.codingwell.scalaguice.InjectorExtensions._
       injector.instance[ServiceApp]
     } catch {
@@ -47,22 +43,30 @@ object ServiceApp {
   ): Unit = {
     val system: ActorSystem = ActorSystem("verifyBindings")
     try {
-      val ec: ExecutionContext = system.dispatcher
       val serviceConfig = new ServiceConfig {
         override val applicationId: String = "verifyBindings"
         override val boundedContext: String = "verifyBindings"
       }
 
-      val systemInstaller = new SystemInstaller(serviceConfig, system, ec)
-
-      val injector = Guice.createInjector(
-        (installers :+ systemInstaller).asJava
-      )
-
+      val injector = createInjector(serviceConfig, installers)(system)
       val _ = injector.getAllBindings
     } finally {
       terminateActorSystem(system)
     }
+  }
+
+  def createInjector(
+      serviceConfig: ServiceConfig,
+      installers: Seq[Module.Installer],
+  )(
+      implicit system: ActorSystem,
+  ): Injector = {
+    val systemInstaller = new SystemInstaller(serviceConfig, system, system.dispatcher)
+
+    val injector = Guice.createInjector(
+      (installers :+ systemInstaller).asJava
+    )
+    injector
   }
 
   private def terminateActorSystem(actorSystem: ActorSystem): Unit = {
@@ -80,19 +84,21 @@ object ServiceApp {
       bind[ActorSystem].toInstance(actorSystem)
       bind[Logger].to[LoggerImpl].in[SingletonScope]()
       bind[ServiceApp].in[SingletonScope]()
+      bind[InstantProvider].to[DefaultInstantProvider].in[SingletonScope]()
     }
   }
+
 }
 
 trait ServiceAppController {
   def shutDown(reason: String): Unit
 }
 
-class ServiceApp @Inject() (
+class ServiceApp @Inject()(
     modules: Set[Module],
     serviceConfig: ServiceConfig,
     system: ActorSystem,
-    val logger: Logger,
+    logger: Logger,
 ) extends ServiceAppController {
   // Config
   private val SHUTDOWN_MAX_WAIT: FiniteDuration = 20.seconds
@@ -101,11 +107,26 @@ class ServiceApp @Inject() (
 
   private val doneSignal = new CountDownLatch(1)
 
+  private val sortedModules: Seq[Module] = modules.toSeq.sortBy(_.priority).reverse
+
   /**
    * Run the service
+   *
    * @param init Initialization function, here you should put any code that should run at startup
    */
-  def run(init: () => Unit): Unit = {
+  def startAndWait(init: () => Unit): Unit = {
+    start(init)
+
+    waitShutdown()
+  }
+
+  def waitShutdown(): Unit = {
+    doneSignal.await()
+
+    logger.info(s"${serviceConfig.applicationId}: Exit ...")
+  }
+
+  def start(init: () => Unit): Unit = {
     logger.info(s"${serviceConfig.applicationId}: Initialize...")
 
     // TODO Verify how to handle shutdown for k8s
@@ -118,7 +139,11 @@ class ServiceApp @Inject() (
       init()
 
       logger.info(s"${serviceConfig.applicationId}: Start  ...")
-      modules.foreach(_.start(this))
+      sortedModules
+        .foreach { module =>
+          logger.info(s"Starting module $module")
+          module.start(this)
+        }
     } catch {
       case exception: Exception =>
         logger.error("Failed to start service", Some(exception))
@@ -126,21 +151,20 @@ class ServiceApp @Inject() (
     }
 
     logger.info(s"${serviceConfig.applicationId}: Running ...")
-
-    doneSignal.await()
-
-    logger.info(s"${serviceConfig.applicationId}: Exit ...")
   }
 
   def shutDown(reason: String): Unit = {
     logger.info(s"Shutting down ($reason)...")
 
-    modules
-      .foreach { part =>
+    sortedModules
+      .reverse
+      .foreach { module =>
+        logger.info(s"Stopping module $module")
+
         Try {
-          part.stop(SHUTDOWN_MAX_WAIT, reason)
+          module.stop(SHUTDOWN_MAX_WAIT, reason)
         } match {
-          case Failure(exception) => logger.error(s"Failed to stop $part", Some(exception))
+          case Failure(exception) => logger.error(s"Failed to stop $module", Some(exception))
           case Success(_) =>
         }
       }
