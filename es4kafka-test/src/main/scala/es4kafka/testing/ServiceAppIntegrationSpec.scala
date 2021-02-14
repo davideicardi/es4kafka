@@ -31,6 +31,12 @@ abstract class ServiceAppIntegrationSpec(
   }
 
   /**
+   * Override the default test execution context to allow parallels code.
+   * Otherwise tests will not work due to the Await used here.
+   */
+  override implicit def executionContext: ExecutionContext = ExecutionContext.global
+
+  /**
    * Start Kafka and the specified installers (typically from a service)
    * and then execute the `body` function
    */
