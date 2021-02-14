@@ -3,6 +3,7 @@ package es4kafka
 import akka.actor.ActorSystem
 import com.google.inject.{Guice, Injector}
 import es4kafka.configs.ServiceConfig
+import es4kafka.datetime.{DefaultInstantProvider, InstantProvider}
 import es4kafka.logging._
 import es4kafka.modules._
 
@@ -83,6 +84,7 @@ object ServiceApp {
       bind[ActorSystem].toInstance(actorSystem)
       bind[Logger].to[LoggerImpl].in[SingletonScope]()
       bind[ServiceApp].in[SingletonScope]()
+      bind[InstantProvider].to[DefaultInstantProvider].in[SingletonScope]()
     }
   }
 

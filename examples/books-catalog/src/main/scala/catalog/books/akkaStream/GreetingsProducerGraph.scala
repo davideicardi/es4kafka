@@ -6,11 +6,11 @@ import catalog.Config
 import es4kafka._
 import es4kafka.akkaStream._
 import es4kafka.akkaStream.kafka.KafkaGraphDsl._
+import es4kafka.datetime.InstantProvider
 import es4kafka.kafka.ProducerFactory
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.streams.scala.Serdes._
 
-import java.time.Instant
 import scala.concurrent.duration.DurationInt
 
 /**
@@ -19,11 +19,12 @@ import scala.concurrent.duration.DurationInt
  */
 class GreetingsProducerGraph @Inject()(
     producerFactory: ProducerFactory,
+    instantProvider: InstantProvider,
 ) extends GraphBuilder {
   override def createGraph(): RunnableGraph[GraphControl] = {
     GraphBuilder.fromSource {
       Source.tick(1.seconds, 5.seconds, NotUsed)
-        .map(_ => s"Hello world ${Instant.now()}!")
+        .map(_ => s"Hello world ${instantProvider.now()}!")
         .via(producerFactory.producerFlowT(createRecord))
         .map(value => println(value))
     }

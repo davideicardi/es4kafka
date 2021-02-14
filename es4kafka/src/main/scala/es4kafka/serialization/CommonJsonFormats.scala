@@ -6,6 +6,8 @@ import es4kafka.streaming.MetadataStoreInfo
 import spray.json.DefaultJsonProtocol
 import es4kafka.EntityStates
 
+import java.time.Instant
+
 trait CommonJsonFormats extends DefaultJsonProtocol {
 
   import spray.json._
@@ -30,4 +32,21 @@ trait CommonJsonFormats extends DefaultJsonProtocol {
   }
 
   implicit val EntityStateFormat: RootJsonFormat[EntityStates.EntityState] = new EnumJsonFormat(EntityStates)
+
+  // TODO Add tests
+  implicit object InstantJsonFormat extends RootJsonFormat[Instant] {
+    override def write(value: Instant): JsString = JsString(value.toEpochMilli.toString)
+
+    override def read(json: JsValue) : Instant = json match {
+      case JsString(s) =>
+        s.toLongOption match {
+          case Some(longValue) =>
+            Instant.ofEpochMilli(longValue)
+          case None =>
+            throw DeserializationException("String value can't be converted to long.")
+        }
+      case _ => throw DeserializationException("Invalid json, expected string")
+    }
+  }
+
 }
