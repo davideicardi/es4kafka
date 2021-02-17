@@ -7,5 +7,6 @@ object Config extends ServiceConfig with ServiceConfigHttp with ServiceConfigKaf
 
   val topicOperations: String = "operations"
   val topicMovements: String = "movements"
-  val topicAccounts: String = "accounts"
+  val storeAccounts: String = "accounts"
+  val topicAccounts: String = s"$applicationId-$storeAccounts-changelog"
 }

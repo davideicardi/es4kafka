@@ -2,7 +2,7 @@ package bank
 
 import com.davideicardi.kaa.SchemaRegistry
 import es4kafka.Inject
-import es4kafka.streaming.TopologyBuilder
+import es4kafka.streaming.{CommandHandlerSupplier, TopologyBuilder}
 import es4kafka.serialization.CommonAvroSerdes._
 import org.apache.kafka.streams.scala._
 import org.apache.kafka.streams.scala.ImplicitConversions._
@@ -17,9 +17,37 @@ class StreamingPipeline @Inject()(
 
     /*
     Topology:
+    Transform commands to events using CommandHandler (ValueTransformerByKey).
+    The command handler maintains a snapshot state and snapshot changelog topic.
+     */
+    // commands
+    val operationsStream = streamBuilder.stream[String, Operation](Config.topicOperations)
+
+    val movementsStream = operationsStream.transformValues(
+      new CommandHandlerSupplier[String, Operation, Movement, Account](
+        Config.storeAccounts,
+        { (operation, accountOptional) =>
+          val account = accountOptional.getOrElse(Account(0))
+          if (account.balance >= -operation.amount) {
+            Movement(operation.amount)
+          } else {
+            Movement(0, error = "insufficient funds")
+          }
+        },
+        { (movement, accountOptional) =>
+          val account = accountOptional.getOrElse(Account(0))
+          account.copy(balance = account.balance + movement.amount)
+          Some(account)
+        }
+      )
+    )
+    movementsStream.to(Config.topicMovements)
+
+
+    /*
+    Old topology:
     Group EVENTS stream by key and aggregate to SNAPSHOTS table.
     Left join COMMANDS stream with the SNAPSHOTS table and output new EVENTS.
-    */
 
     // events
     val movementsStream = streamBuilder.stream[String, Movement](Config.topicMovements)
@@ -42,6 +70,7 @@ class StreamingPipeline @Inject()(
         }
       }
       .to(Config.topicMovements)
+    */
 
     streamBuilder
   }
