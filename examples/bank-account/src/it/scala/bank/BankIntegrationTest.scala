@@ -6,6 +6,11 @@ import es4kafka.testing.ServiceAppIntegrationSpec
 import net.codingwell.scalaguice.InjectorExtensions._
 
 class BankIntegrationTest extends ServiceAppIntegrationSpec("BankIntegrationTest") {
+  it("should override config") {
+    Config.applicationId should be("bank-it")
+    Config.boundedContext should be("sample")
+    Config.cleanUpState should be (true)
+  }
   describe("when bank-account is running") {
     it("should produce the correct operations") {
       withRunningService(Config, EntryPoint.installers, () => EntryPoint.init()) { injector =>
@@ -25,7 +30,7 @@ class BankIntegrationTest extends ServiceAppIntegrationSpec("BankIntegrationTest
           movements should be (Seq(
             "alice" -> Movement(100),
             "alice" -> Movement(100),
-            "alice" -> Movement(-200), // ERROR: Here I receive an insufficient founds instead
+            "alice" -> Movement(-200),
           ))
         }
       }

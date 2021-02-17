@@ -55,11 +55,12 @@ trait ServiceConfigKafkaStreams extends BaseConfig with ServiceConfigKafka with 
   val cleanUpState: Boolean =
     es4KafkaConfig.getBoolean("kafkaStreams.cleanUpState")
 
+  val kafkaStreamsApplicationId: String = groupId("ks")
+
   def kafkaStreamProperties(): Properties = {
     val properties = new Properties()
-    val kafkaStreamGroupId = groupId("ks")
-    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, kafkaStreamGroupId)
-    properties.put(StreamsConfig.CLIENT_ID_CONFIG, kafkaStreamGroupId)
+    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, kafkaStreamsApplicationId)
+    properties.put(StreamsConfig.CLIENT_ID_CONFIG, kafkaStreamsApplicationId)
     properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers)
     properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE)
     properties.put(

@@ -36,8 +36,7 @@ class StreamingPipeline @Inject()(
         },
         { (movement, accountOptional) =>
           val account = accountOptional.getOrElse(Account(0))
-          account.copy(balance = account.balance + movement.amount)
-          Some(account)
+          Some(account.copy(balance = account.balance + movement.amount))
         }
       )
     )
