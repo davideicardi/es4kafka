@@ -63,7 +63,7 @@ class BankIntegrationTest extends ServiceAppIntegrationSpec("BankIntegrationTest
         for {
           _ <- writeKafkaRecords(injector, Config.topicOperations, operations)
           movements <- readAllKafkaRecords[String, Movement](injector, Config.topicMovements, take = 2)
-          accounts <- readAllKafkaRecords[String, Account](injector, Config.topicAccounts, take = 2)
+          accounts <- readAllKafkaRecords[String, Account](injector, Config.topicAccounts, take = 1)
         } yield {
           movements.size should be (2)
           movements should be (Seq(
@@ -71,9 +71,8 @@ class BankIntegrationTest extends ServiceAppIntegrationSpec("BankIntegrationTest
             "alice" -> Movement(0, "insufficient funds"),
           ))
 
-          accounts.size should be (2)
+          accounts.size should be (1)
           accounts should be (Seq(
-            "alice" -> Account(100),
             "alice" -> Account(100),
           ))
         }

@@ -65,7 +65,6 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
 
         outAccounts.readValuesToSeq() should be (Seq(
           "alice" -> Account(10),
-          "alice" -> Account(10),
         ))
       }
     }
