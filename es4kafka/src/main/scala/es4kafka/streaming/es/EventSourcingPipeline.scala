@@ -24,7 +24,6 @@ abstract class EventSourcingPipeline[TKey: Serde, TCommand: Serde, TEvent: Serde
 
   var commandsStream: KStream[TKey, TCommand] = _
   var eventsStream: KStream[TKey, TEvent] = _
-  var snapshotsStream: KStream[TKey, TState] = _
 
   def prepare(streamsBuilder: StreamsBuilder): Unit = {
     commandsStream = streamsBuilder.stream[TKey, TCommand](commandsTopic)

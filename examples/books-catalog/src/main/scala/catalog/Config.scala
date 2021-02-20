@@ -7,18 +7,18 @@ object Config extends ServiceConfig with ServiceConfigHttp with ServiceConfigKaf
   val defaultHttpEndpointPort: Integer = 9081
 
   object Author extends AggregateConfig {
-    val aggregateName: String = "authors"
-    val context: String = boundedContext
+    override val aggregateName: String = "authors"
+    override val appId: String = applicationId
   }
 
   object Book extends AggregateConfig {
-    val aggregateName: String = "books"
-    val context: String = boundedContext
+    override val aggregateName: String = "books"
+    override val appId: String = applicationId
   }
 
   object BookCard extends ProjectionConfig {
-    val projectionName: String = "booksCards"
-    val context: String = boundedContext
+    override val projectionName: String = "booksCards"
+    override val appId: String = applicationId
   }
 
   val topicGreetings: String = s"$boundedContext.greetings"

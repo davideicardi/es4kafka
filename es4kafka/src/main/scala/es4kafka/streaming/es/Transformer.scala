@@ -26,7 +26,8 @@ class TransformerSupplier[TKey: Serde, TCommand, TEvent, TState >: Null : Serde]
       implicitly[Serde[TKey]],
       implicitly[Serde[TState]],
     )
-      // enable the changelog topic, name is composed by `<application.id>-<storeName>-changelog`
+      // enable the changelog topic, name is automatically created as:
+      //  `<application.id>-<stateStoreName>-changelog`
       .withLoggingEnabled(Map.empty[String, String].asJava)
 
     Collections.singleton(storeBuilder)
