@@ -19,7 +19,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
       val expectedEvent = AuthorCreated("spider-man", "Peter", "Parker")
       val expectedSnapshot = Author(EntityStates.VALID, "spider-man", "Peter", "Parker")
       event should be(expectedEvent)
-      Author(target, event) should be(expectedSnapshot)
+      target.apply(event) should be(expectedSnapshot)
     }
 
     it("should not be possible to exec other commands") {
@@ -28,7 +28,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
 
       val expectedEvent = AuthorError("spider-man", "Entity not valid")
       event should be(expectedEvent)
-      Author(target, event) should be(target)
+      target.apply(event) should be(target)
     }
   }
 
@@ -42,7 +42,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
       val expectedEvent = AuthorUpdated(target.code, "C", "K")
       val expectedSnapshot = Author(EntityStates.VALID, "superman", "C", "K")
       event should be(expectedEvent)
-      Author(target, event) should be(expectedSnapshot)
+      target.apply(event) should be(expectedSnapshot)
     }
 
     it("should be possible to delete") {
@@ -52,7 +52,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
       val expectedEvent = AuthorDeleted(target.code)
       val expectedSnapshot = Author(EntityStates.DELETED, "superman", "Clark", "Kent")
       event should be(expectedEvent)
-      Author(target, event) should be(expectedSnapshot)
+      target.apply(event) should be(expectedSnapshot)
     }
 
     it("should not be possible to send a command with a not matching key") {
@@ -61,7 +61,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
 
       val expectedEvent = AuthorError("superman", "Code doesn't match")
       event should be(expectedEvent)
-      Author(target, event) should be(target)
+      target.apply(event) should be(target)
     }
 
     it("should not be possible to change firstName with empty") {
@@ -70,7 +70,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
 
       val expectedEvent = AuthorError(target.code, "Invalid firstName")
       event should be(expectedEvent)
-      Author(target, event) should be(target)
+      target.apply(event) should be(target)
     }
 
     it("should not be possible to change lastName with empty") {
@@ -79,7 +79,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
 
       val expectedEvent = AuthorError(target.code, "Invalid lastName")
       event should be(expectedEvent)
-      Author(target, event) should be(target)
+      target.apply(event) should be(target)
     }
 
     it("should not be possible to create multiple times") {
@@ -88,7 +88,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
 
       val expectedEvent = AuthorError(target.code, "Entity already created")
       event should be(expectedEvent)
-      Author(target, event) should be(target)
+      target.apply(event) should be(target)
     }
   }
 
@@ -101,7 +101,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
 
       val expectedEvent = AuthorError(target.code, "Entity not valid")
       event should be(expectedEvent)
-      Author(target, event) should be(target)
+      target.apply(event) should be(target)
     }
 
     it("should be possible to create again") {
@@ -111,7 +111,7 @@ class AuthorSpec extends AnyFunSpec with Matchers {
       val expectedEvent = AuthorCreated(target.code, "Peter", "Parker")
       val expectedSnapshot = Author(EntityStates.VALID, "spider-man", "Peter", "Parker")
       event should be(expectedEvent)
-      Author(target, event) should be(expectedSnapshot)
+      target.apply(event) should be(expectedSnapshot)
     }
   }
 }

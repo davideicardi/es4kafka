@@ -13,7 +13,7 @@ case class Book(
                  author: Option[String] = None,
                  state: EntityStates.EntityState = EntityStates.VALID,
                  chapters: Seq[Chapter] = Seq(),
-               ) extends DefaultEntity[UUID, BookCommand, BookEvent, Book] with StatefulEntity {
+               ) extends StatefulEntity {
   private def addChapter(chapter: Chapter): Book = {
     val newChapters = chapters :+ chapter
     this.copy(chapters = newChapters)

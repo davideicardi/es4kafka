@@ -1,5 +1,6 @@
 package es4kafka.streaming.es
 
+import es4kafka.Envelop
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.kstream.{ValueTransformerWithKey, ValueTransformerWithKeySupplier}
 import org.apache.kafka.streams.processor.ProcessorContext
@@ -12,8 +13,8 @@ import scala.jdk.CollectionConverters._
 class TransformerSupplier[TKey: Serde, TCommand, TEvent, TState >: Null : Serde](
     stateStoreName: String,
     handler: EventSourcingHandler[TKey, TCommand, TEvent, TState],
-) extends ValueTransformerWithKeySupplier[TKey, TCommand, Iterable[TEvent]] {
-  override def get(): ValueTransformerWithKey[TKey, TCommand, Iterable[TEvent]] =
+) extends ValueTransformerWithKeySupplier[TKey, Envelop[TCommand], Iterable[Envelop[TEvent]]] {
+  override def get(): ValueTransformerWithKey[TKey, Envelop[TCommand], Iterable[Envelop[TEvent]]] =
     new Transformer(
       stateStoreName,
       handler,
@@ -37,20 +38,20 @@ class TransformerSupplier[TKey: Serde, TCommand, TEvent, TState >: Null : Serde]
 class Transformer[TKey, TCommand, TEvent, TState >: Null](
     stateStoreName: String,
     handler: EventSourcingHandler[TKey, TCommand, TEvent, TState],
-) extends ValueTransformerWithKey[TKey, TCommand, Iterable[TEvent]] {
+) extends ValueTransformerWithKey[TKey, Envelop[TCommand], Iterable[Envelop[TEvent]]] {
   private var stateStore: KeyValueStore[TKey, TState] = _
 
   override def init(context: ProcessorContext): Unit = {
     stateStore = context.getStateStore(stateStoreName).asInstanceOf[KeyValueStore[TKey, TState]]
   }
 
-  override def transform(key: TKey, command: TCommand): Iterable[TEvent] = {
+  override def transform(key: TKey, command: Envelop[TCommand]): Iterable[Envelop[TEvent]] = {
     val state = Option(stateStore.get(key))
-    val (events, newState) = handler.handle(key, command, state)
+    val (events, newState) = handler.handle(key, command.message, state)
     if (state != newState) {
       stateStore.put(key, newState.orNull)
     }
-    events
+    events.map(e => Envelop(command.msgId, e))
   }
 
   override def close(): Unit = {}
