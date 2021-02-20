@@ -20,7 +20,6 @@ object EntryPoint extends App {
       .addSchemaTopic()
       .addPersistentTopic(Config.topicMovements)
       .addPersistentTopic(Config.topicOperations)
-      .addPersistentTopic(Config.topicAccounts, compact = true)
       .setup()
   }
 

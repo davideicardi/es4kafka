@@ -26,7 +26,7 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
         // events
         val outMovements = new OutputTopicTest[String, Movement](driver, Config.topicMovements)
         // snapshots
-        val outAccounts = new OutputTopicTest[String, Account](driver, Config.topicAccounts)
+        val outAccounts = new OutputTopicTest[String, Account](driver, Config.topicChangelogAccounts)
 
         inOperations.pipeInput("alice", Operation(10))
         inOperations.pipeInput("alice", Operation(10))
@@ -53,7 +53,7 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
         // events
         val outMovements = new OutputTopicTest[String, Movement](driver, Config.topicMovements)
         // snapshots
-        val outAccounts = new OutputTopicTest[String, Account](driver, Config.topicAccounts)
+        val outAccounts = new OutputTopicTest[String, Account](driver, Config.topicChangelogAccounts)
 
         inOperations.pipeInput("alice", Operation(10))
         inOperations.pipeInput("alice", Operation(-20))
@@ -72,6 +72,7 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
 
   def runTopology[T](testFun: TopologyTestDriver => T): T = {
     val topology = target.builder().build()
+    println(topology.describe().toString)
     val driver = new TopologyTestDriver(topology, Config.kafkaStreamProperties())
 
     try {
