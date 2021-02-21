@@ -92,12 +92,14 @@ lazy val es4kafkaTest = (project in file("es4kafka-test"))
         .dependsOn(es4kafka)
 
 lazy val sample_books_catalog = (project in file("examples/books-catalog"))
+        .configs(IntegrationTest)
         .settings(
             name := "sample-books-catalog",
+            Defaults.itSettings,
             publish / skip := true,
-            libraryDependencies ++= testDependencies("test"),
+            libraryDependencies ++= testDependencies("it, test"),
         )
-        .dependsOn(es4kafka, es4kafkaTest % "test")
+        .dependsOn(es4kafka, es4kafkaTest % "it, test")
 
 lazy val sample_bank_account = (project in file("examples/bank-account"))
         .configs(IntegrationTest)

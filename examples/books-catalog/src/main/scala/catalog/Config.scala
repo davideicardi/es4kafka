@@ -2,23 +2,24 @@ package catalog
 
 import es4kafka._
 import es4kafka.configs.{ServiceConfig, ServiceConfigHttp, ServiceConfigKafkaStreams}
+import es4kafka.kafka.KafkaNamingConvention
 
 object Config extends ServiceConfig with ServiceConfigHttp with ServiceConfigKafkaStreams {
   val defaultHttpEndpointPort: Integer = 9081
 
   object Author extends AggregateConfig {
-    val aggregateName: String = "authors"
-    val context: String = boundedContext
+    override val aggregateName: String = "authors"
+    override val namingConvention: KafkaNamingConvention = Config.namingConvention
   }
 
   object Book extends AggregateConfig {
-    val aggregateName: String = "books"
-    val context: String = boundedContext
+    override val aggregateName: String = "books"
+    override val namingConvention: KafkaNamingConvention = Config.namingConvention
   }
 
   object BookCard extends ProjectionConfig {
-    val projectionName: String = "booksCards"
-    val context: String = boundedContext
+    override val projectionName: String = "booksCards"
+    override val namingConvention: KafkaNamingConvention = Config.namingConvention
   }
 
   val topicGreetings: String = s"$boundedContext.greetings"

@@ -64,7 +64,7 @@ class ConsumerFactoryImpl @Inject() (
     ConsumerSettings(actorSystem, serdeKey.deserializer(), serdeValue.deserializer())
       .withBootstrapServers(serviceConfig.kafkaBrokers)
       .withStopTimeout(Duration.Zero)
-      .withGroupId(serviceConfig.groupId(scenarioGroupId))
+      .withGroupId(serviceConfig.namingConvention.groupId(scenarioGroupId))
   }
 
   private def committerSettings(): CommitterSettings = {

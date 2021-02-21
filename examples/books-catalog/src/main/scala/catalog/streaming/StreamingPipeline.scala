@@ -1,4 +1,4 @@
-package catalog
+package catalog.streaming
 
 import catalog.authors.streaming.AuthorsTopology
 import catalog.books.streaming.BooksTopology
@@ -21,13 +21,15 @@ class StreamingPipeline @Inject()(
     val streamBuilder = new StreamsBuilder
 
     logger.info("Create authors topology ...")
-    val authors = new AuthorsTopology(streamBuilder)
+    val authors = new AuthorsTopology()
+    authors.prepare(streamBuilder)
 
     logger.info("Create books topology ...")
-    val books = new BooksTopology(streamBuilder)
+    val books = new BooksTopology()
+    books.prepare(streamBuilder)
 
     logger.info("Create bookcards topology ...")
-    new BooksCardsTopology(books.snapshotTable, authors.snapshotTable)
+    new BooksCardsTopology(books.snapshotsTable, authors.snapshotsTable)
 
     streamBuilder
   }

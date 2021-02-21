@@ -2,9 +2,8 @@ package catalog.streaming
 
 import catalog.authors._
 import catalog.books._
-
 import catalog.booksCards._
-import catalog.{Config, StreamingPipeline}
+import catalog.Config
 import com.davideicardi.kaa.SchemaRegistry
 import com.davideicardi.kaa.test.TestSchemaRegistry
 import es4kafka._
@@ -21,12 +20,7 @@ import java.util.UUID
 class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
   implicit val schemaRegistry: SchemaRegistry = new TestSchemaRegistry
 
-  implicit val logger: Logger = mockLogger()
-  def mockLogger(): Logger = {
-    val logger = mock[Logger]
-    (logger.info _).expects(*).anyNumberOfTimes()
-    logger
-  }
+  implicit val logger: Logger = new LoggerTest()
 
   private val target = new StreamingPipeline(Config)
 
@@ -34,61 +28,50 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
     new EventSourcingTopologyTest[String, AuthorCommand, AuthorEvent, Author](Config.Author, driver)
 
   describe("authors") {
-    describe("when sending various commands") {
+    it("should create events, snapshots and store") {
       runTopology { driver =>
         val authorsTest = createAuthorsTest(driver)
         val cmdId1 = authorsTest.pipeCommand(CreateAuthor("spider-man", "Peter", "Parker"))
         val cmdId2 = authorsTest.pipeCommand(CreateAuthor("superman", "Clark", "Kent"))
         val cmdId3 = authorsTest.pipeCommand(UpdateAuthor("spider-man", "Miles", "Morales"))
 
+        val events = authorsTest.readEvents
+        events should have size 3
+        events should contain("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
+        events should contain("superman" -> Envelop(cmdId2, AuthorCreated("superman", "Clark", "Kent")))
+        events should contain("spider-man" -> Envelop(cmdId3, AuthorUpdated("spider-man", "Miles", "Morales")))
+
+        val snapshots = authorsTest.readSnapshots
+        snapshots should have size 2
+        snapshots should contain("spider-man" -> Author("spider-man", "Miles", "Morales"))
+        snapshots should contain("superman" -> Author("superman", "Clark", "Kent"))
+
         val snapshotsFromStore = authorsTest.readSnapshotsFromStore
-
-        it("should generate events") {
-          val events = authorsTest.readEvents
-          events should have size 3
-          events should contain("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
-          events should contain("superman" -> Envelop(cmdId2, AuthorCreated("superman", "Clark", "Kent")))
-          events should contain("spider-man" -> Envelop(cmdId3, AuthorUpdated("spider-man", "Miles", "Morales")))
-        }
-
-        it("should generate snapshots") {
-          val snapshots = authorsTest.readSnapshots
-          snapshots should have size 2
-          snapshots should contain("spider-man" -> Author("spider-man", "Miles", "Morales"))
-          snapshots should contain("superman" -> Author("superman", "Clark", "Kent"))
-        }
-
-        it("should generate snapshots inside state store"){
-          snapshotsFromStore should have size 2
-          snapshotsFromStore should contain (Author("spider-man", "Miles", "Morales"))
-          snapshotsFromStore should contain (Author("superman", "Clark", "Kent"))
-        }
+        snapshotsFromStore should have size 2
+        snapshotsFromStore should contain(Author("spider-man", "Miles", "Morales"))
+        snapshotsFromStore should contain(Author("superman", "Clark", "Kent"))
       }
     }
 
-    describe("when adding two authors with the same code") {
+    it("should validate commands") {
       runTopology { driver =>
         val authorsTest = createAuthorsTest(driver)
 
         val cmdId1 = authorsTest.pipeCommand(CreateAuthor("spider-man", "Peter", "Parker"))
         val cmdId2 = authorsTest.pipeCommand(CreateAuthor("spider-man", "Miles", "Morales"))
 
-        it("should generate events only for the first one and one error") {
-          val events = authorsTest.readEvents
-          events should have size 2
-          events should contain("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
-          events should contain("spider-man" -> Envelop(cmdId2, AuthorError("spider-man", "Entity already created")))
-        }
+        val events = authorsTest.readEvents
+        events should have size 2
+        events should contain("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
+        events should contain("spider-man" -> Envelop(cmdId2, AuthorError("spider-man", "Entity already created")))
 
-        it("generate snapshots only for the first one") {
-          val snapshots = authorsTest.readSnapshots
-          snapshots should have size 1
-          snapshots should contain("spider-man" -> Author("spider-man", "Peter", "Parker"))
-        }
+        val snapshots = authorsTest.readSnapshots
+        snapshots should have size 1
+        snapshots should contain("spider-man" -> Author("spider-man", "Peter", "Parker"))
       }
     }
 
-    describe("when add an author, delete it and add it again") {
+    it("should remove an author when deleted and it can be restored") {
       runTopology { driver =>
         val authorsTest = createAuthorsTest(driver)
 
@@ -96,19 +79,15 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
         val cmdId2 = authorsTest.pipeCommand(DeleteAuthor("spider-man"))
         val cmdId3 = authorsTest.pipeCommand(CreateAuthor("spider-man", "Miles", "Morales"))
 
-        it("should generate events") {
-          val events = authorsTest.readEvents
-          events should have size 3
-          events should contain("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
-          events should contain("spider-man" -> Envelop(cmdId2, AuthorDeleted("spider-man")))
-          events should contain("spider-man" -> Envelop(cmdId3, AuthorCreated("spider-man", "Miles", "Morales")))
-        }
+        val events = authorsTest.readEvents
+        events should have size 3
+        events should contain("spider-man" -> Envelop(cmdId1, AuthorCreated("spider-man", "Peter", "Parker")))
+        events should contain("spider-man" -> Envelop(cmdId2, AuthorDeleted("spider-man")))
+        events should contain("spider-man" -> Envelop(cmdId3, AuthorCreated("spider-man", "Miles", "Morales")))
 
-        it("should generate snapshots only for the last one") {
-          val snapshots = authorsTest.readSnapshots
-          snapshots should have size 1
-          snapshots should contain("spider-man" -> Author("spider-man", "Miles", "Morales"))
-        }
+        val snapshots = authorsTest.readSnapshots
+        snapshots should have size 1
+        snapshots should contain("spider-man" -> Author("spider-man", "Miles", "Morales"))
       }
     }
   }
@@ -117,7 +96,7 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
     new EventSourcingTopologyTest[UUID, BookCommand, BookEvent, Book](Config.Book, driver)
 
   describe("books") {
-    describe("when sending various commands") {
+    it("should create events, snapshots and store") {
       runTopology { driver =>
         val booksTest = createBooksTest(driver)
         val cmd1 = CreateBook("Permanent Record", UUID.randomUUID())
@@ -126,35 +105,28 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
         val cmdId2 = booksTest.pipeCommand(cmd2)
         val cmdId3 = booksTest.pipeCommand(SetBookAuthor(cmd1.id, Some("snow")))
 
+        val events = booksTest.readEvents
+
+        events should have size 3
+        events should contain(cmd1.key -> Envelop(cmdId1, BookCreated(cmd1.id, cmd1.title)))
+        events should contain(cmd2.key -> Envelop(cmdId2, BookCreated(cmd2.id, cmd2.title)))
+        events should contain(cmd1.key -> Envelop(cmdId3, BookAuthorSet(cmd1.id, Some("snow"))))
+
+        val snapshots = booksTest.readSnapshots
+        snapshots should have size 2
+        snapshots should contain(cmd1.key -> Book(cmd1.id, cmd1.title, author = Some("snow")))
+        snapshots should contain(cmd2.key -> Book(cmd2.id, cmd2.title))
+
         val snapshotsFromStore = booksTest.readSnapshotsFromStore
-
-        it("should generate events") {
-          val events = booksTest.readEvents
-
-          events should have size 3
-          events should contain(cmd1.key -> Envelop(cmdId1, BookCreated(cmd1.id, cmd1.title)))
-          events should contain(cmd2.key -> Envelop(cmdId2, BookCreated(cmd2.id, cmd2.title)))
-          events should contain(cmd1.key -> Envelop(cmdId3, BookAuthorSet(cmd1.id, Some("snow"))))
-        }
-
-        it("should generate snapshots") {
-          val snapshots = booksTest.readSnapshots
-          snapshots should have size 2
-          snapshots should contain(cmd1.key -> Book(cmd1.id, cmd1.title, author = Some("snow")))
-          snapshots should contain(cmd2.key -> Book(cmd2.id, cmd2.title))
-        }
-
-        it("should generate snapshots inside state store"){
-          snapshotsFromStore should have size 2
-          snapshotsFromStore should contain(Book(cmd2.id, cmd2.title))
-          snapshotsFromStore should contain(Book(cmd1.id, cmd1.title, author = Some("snow")))
-        }
+        snapshotsFromStore should have size 2
+        snapshotsFromStore should contain(Book(cmd2.id, cmd2.title))
+        snapshotsFromStore should contain(Book(cmd1.id, cmd1.title, author = Some("snow")))
       }
     }
   }
 
   describe("booksCards") {
-    describe("when adding a book and an author") {
+    it("should create books cards") {
       runTopology { driver =>
         val booksTest = createBooksTest(driver)
         val authorsTest = createAuthorsTest(driver)
@@ -173,20 +145,18 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
         booksTest.pipeCommand(SetBookAuthor(bookId3, Some("eco")))
         authorsTest.pipeCommand(DeleteAuthor("eco"))
 
-        it("should generate snapshots") {
-          val snapshotTopic = new OutputTopicTest[UUID, BookCard](driver, Config.BookCard.topicSnapshots)
-          val snapshots = snapshotTopic.readValuesToSeq()
-          snapshots should have size 4
-          snapshots should contain(
-            bookId1 -> BookCard(Book(bookId1, "Permanent Record", Some("snow")), Author("snow", "Edward", "Snowden")))
-          snapshots should contain(
-            bookId2 -> BookCard(Book(bookId2, "Harry Potter", Some("jkr")), Author("jkr", "JK", "Rowling")))
-          snapshots should contain(
-            bookId3 -> BookCard(Book(bookId3, "Il pendolo di Focault", Some("eco")), Author("eco", "Umberto", "Eco")))
-          // tombstone for bookId3 because "eco" author is deleted
-          snapshots should contain(
-            bookId3 -> null)
-        }
+        val snapshotTopic = new OutputTopicTest[UUID, BookCard](driver, Config.BookCard.topicSnapshots)
+        val snapshots = snapshotTopic.readValuesToSeq()
+        snapshots should have size 4
+        snapshots should contain(
+          bookId1 -> BookCard(Book(bookId1, "Permanent Record", Some("snow")), Author("snow", "Edward", "Snowden")))
+        snapshots should contain(
+          bookId2 -> BookCard(Book(bookId2, "Harry Potter", Some("jkr")), Author("jkr", "JK", "Rowling")))
+        snapshots should contain(
+          bookId3 -> BookCard(Book(bookId3, "Il pendolo di Focault", Some("eco")), Author("eco", "Umberto", "Eco")))
+        // tombstone for bookId3 because "eco" author is deleted
+        snapshots should contain(
+          bookId3 -> null)
       }
     }
   }

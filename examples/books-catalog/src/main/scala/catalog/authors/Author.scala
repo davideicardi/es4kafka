@@ -3,23 +3,6 @@ package catalog.authors
 import es4kafka._
 
 object Author {
-  def apply(snapshot: Author, event: AuthorEvent): Author = {
-    event match {
-      case AuthorCreated(code, firstName, lastName) =>
-        Author(
-          state = EntityStates.VALID,
-          code = code, firstName = firstName, lastName = lastName)
-      case AuthorUpdated(_, firstName, lastName) =>
-        snapshot.copy(firstName = firstName, lastName = lastName)
-      case AuthorDeleted(_) =>
-        snapshot.copy(state = EntityStates.DELETED)
-      case AuthorError(_, _) =>
-        snapshot
-      case UnknownAuthorEvent() =>
-        throw new UnknownEventException("Invalid event")
-    }
-  }
-
   def apply(code: String, firstName: String, lastName: String): Author = {
     Author(EntityStates.VALID, code, firstName, lastName)
   }
@@ -39,6 +22,23 @@ case class Author(
                    firstName: String = "",
                    lastName: String = ""
                  ) extends StatefulEntity {
+  def apply(event: AuthorEvent): Author = {
+    event match {
+      case AuthorCreated(code, firstName, lastName) =>
+        Author(
+          state = EntityStates.VALID,
+          code = code, firstName = firstName, lastName = lastName)
+      case AuthorUpdated(_, firstName, lastName) =>
+        this.copy(firstName = firstName, lastName = lastName)
+      case AuthorDeleted(_) =>
+        this.copy(state = EntityStates.DELETED)
+      case AuthorError(_, _) =>
+        this
+      case UnknownAuthorEvent() =>
+        throw new UnknownEventException("Invalid event")
+    }
+  }
+
   def handle(command: AuthorCommand): AuthorEvent = {
     state match {
       case EntityStates.DRAFT => draftHandle(command)

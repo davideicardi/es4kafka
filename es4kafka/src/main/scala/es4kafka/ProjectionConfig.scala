@@ -1,14 +1,14 @@
 package es4kafka
 
+import es4kafka.kafka.KafkaNamingConvention
+
 trait ProjectionConfig {
   val projectionName: String
-  val context: String
+  val namingConvention: KafkaNamingConvention
 
-  // Kafka Topic name convention: {context}.{name}.{kind}
-  lazy val topicSnapshots: String = s"$context.$projectionName.snapshots"
+  lazy val topicSnapshots: String = namingConvention.kafkaSnapshotsTopic(projectionName)
 
-  // Kafka Streams store convention: {name}.store.{kind} (store already have a prefix the app id)
-  lazy val storeSnapshots: String = s"$context.$projectionName.store.snapshots"
+  lazy val storeSnapshots: String = namingConvention.kafkaStreamsStore(s"$projectionName.snapshots")
 
   // HTTP RPC segments
   lazy val httpPrefix: String = projectionName

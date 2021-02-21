@@ -6,7 +6,7 @@
         </encoder>
     </appender>
 
-    <logger name="bank-test" level="info" additivity="false">
+    <logger name="catalog-it" level="info" additivity="false">
         <appender-ref ref="STDOUT"/>
     </logger>
 

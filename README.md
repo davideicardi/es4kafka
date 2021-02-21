@@ -20,19 +20,7 @@ Event driven/event sourcing microservice example written with:
 
 For an overview of Kafka Stream see [Streams Concepts](https://docs.confluent.io/platform/current/streams/concepts.html).
 
-The goal of this project is to implement Event Sourcing pattern with Kafka Streams. Main concepts are:
-
-- **commands**: topic, `KStream`
-- **events**: topic, `KStream`
-- **snapshots**: topic, `KTable`
-
-**snapshots** table contains the current state of the entities, and it is created by aggregating **events** by key. **commands** are validated using the corresponding **snapshots** and transformed to **events**, that will update again the snapshots for the next command:
-
-Group `EVENTS` stream by key and aggregate them to a `SNAPSHOTS` table.
-Left join `COMMANDS` stream with the `SNAPSHOTS` table and output new `EVENTS`.
-
-
-![event-sourcing-topology](docs/event-sourcing-topology.drawio.png)
+The goal of this project is to implement Event Sourcing pattern with Kafka Streams.
 
 There are 3 types of topics:
 
@@ -42,6 +30,17 @@ There are 3 types of topics:
     - examples: `BookCreated`, `SeatReserved`
 - `*.snapshots`: Snapshots reflect the current state of an entity. Expressed as: **{Entity}**
     - examples: `Book`, `Seat`
+
+A value transformer ([link](https://kafka.apache.org/26/javadoc/org/apache/kafka/streams/kstream/ValueTransformerWithKey.html), `EventSourcingTransformer`)
+is used to transform events to commands. This is a stateful transformation, that use the state inside a state store.
+The state represents the "domain aggregate state" and should be used to verify that the commands is valid for the current state of the aggregate.
+
+![event-sourcing-topology](docs/event-sourcing-topology.drawio.png)
+
+NOTE: in the past I have implemented this topology in a different way, by joining the commands with the snapshots and creating
+snapshots by aggregating events. But while this implementation was simpler it has concurrency problems.
+For reference see this [version](https://github.com/davideicardi/es4kafka/tree/8e5f6228bc37fc4d27138b9077fda3f2067c6d77)
+and the discussion [here](https://lists.apache.org/thread.html/r0cf4a01bc86bd6506b0a0c5fe1ed42dc9813e2bc1024ee90a9028b8b%40%3Cusers.kafka.apache.org%3E). 
 
 **A topic always belongs logically to a single microservice**,
 this is enforced using a prefix with the name of the microservice: **{service}.{type}**. Like `books-catalog.events`.
@@ -63,50 +62,24 @@ Another alternative is to send a commands to the appropriate `*.commands` topic 
 
 ### Bank account
 
-To apply this pattern to a very simple bank account scenario I can have:
+This is a minimal example that can be used as a reference. 
+Goal is to apply this pattern to a very simple bank account scenario, where I have the following entities:
 
 - `operations` stream as "commands" (requests to deposit or withdraw an amount of money, eg. "deposit $10" => `Operation(+10)` )
 - `movements` stream as "events" (actual deposit or withdraw event, eg. "$10 deposited" => `Movement(+10)` )
 - `account` table as a "snapshots" (account balance, eg. "there are currently $20 in my account" => `Account(20)` )
 - account id is used as `key` for all topics and tables
 
-The topology can be written like:
-
-```scala
-case class Operation(amount: Int)
-case class Movement(amount: Int, error: String = "")
-case class Account(balance: Int)
-
-// events
-val movementsStream = streamBuilder.stream[String, Movement](Config.topicMovements)
-// snapshots
-val accountTable = movementsStream
-    .groupByKey
-    .aggregate(Account(0)){ (_, movement, account) =>
-    account.copy(balance = account.balance + movement.amount)
-    }
-accountTable.toStream.to(Config.topicAccounts)
-// commands
-val operationsStream = streamBuilder.stream[String, Operation](Config.topicOperations)
-operationsStream
-    .leftJoin(accountTable) { (operation, accountOrNull) =>
-    val account = Option(accountOrNull).getOrElse(Account(0))
-    if (account.balance >= -operation.amount) {
-        Movement(operation.amount)
-    } else {
-        Movement(0, error = "insufficient funds")
-    }
-    }
-    .to(Config.topicMovements)
-```
-
 This is a minimal example to demonstrate the event sourcing concepts.
 
 ### Books catalog
 
-In this example I want to implement a simple books catalog, where the user insert authors, books and can query the books for a specific author.
-This example is written using additional conventions and patterns that can be useful for more complex use cases:
+This is a more complex and complete scenario, that use several facilities and patterns. It can be used as a reference 
+for real world cases.
 
+In this example I want to implement a simple books catalog. The user insert authors, books and can query the books for a specific author.
+
+- several bases classes are used to share common codes, like the actual event sourcing pipeline
 - using sealed traits for events and commands (`BookCommand`, `AuthorCommand`, `BookEvent`, `AuthorEvent`, ...)
 - using a class to handle aggregates (aka: snapshots) (`Book`, `Author`, ...)
 - HTTP rpc layer using interactive queries to read the entities 

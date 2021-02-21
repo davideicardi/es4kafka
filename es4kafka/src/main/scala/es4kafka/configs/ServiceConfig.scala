@@ -1,6 +1,7 @@
 package es4kafka.configs
 
 import com.typesafe.config.{Config, ConfigFactory}
+import es4kafka.kafka.KafkaNamingConvention
 import org.apache.kafka.streams.StreamsConfig
 import org.apache.kafka.streams.state.HostInfo
 
@@ -14,14 +15,12 @@ trait BaseConfig {
 trait ServiceConfig extends BaseConfig {
   /**
    * Name of the application/microservice.
-   * It will be used as Kafka applicationId and as a prefix for kafka streams internal topics.
-   * Abstract.
+   * It will be used as Kafka Streams applicationId, Akka System name, logger name and as a prefix for kafka topics.
    */
   val applicationId: String =
     es4KafkaConfig.getString("service.applicationId")
   /**
-   * Name of the bounded context. It will be used as a prefix for topics.
-   * Abstract.
+   * Name of the bounded context.
    */
   val boundedContext: String =
     es4KafkaConfig.getString("service.boundedContext")
@@ -40,14 +39,7 @@ trait ServiceConfigHttp {
 trait ServiceConfigKafka extends ServiceConfig {
   lazy val kafkaBrokers: String = sys.env.getOrElse("KAFKA_BROKERS", "localhost:9092")
 
-  /**
-   * Returns a group id used for Kafka. It will be composed by "{applicationId}-{scenario}"
-   * Group Id must unique for each use case. For example every Kafka Stream apps for a specific service should use
-   * the same group id.
-   * @param scenarioGroupId Unique name of the use case inside an application.
-   * @return The group id
-   */
-  def groupId(scenarioGroupId: String) = s"$applicationId-$scenarioGroupId"
+  lazy val namingConvention: KafkaNamingConvention = new KafkaNamingConvention(applicationId, boundedContext)
 }
 
 trait ServiceConfigKafkaStreams extends BaseConfig with ServiceConfigKafka with ServiceConfigHttp {
@@ -57,9 +49,8 @@ trait ServiceConfigKafkaStreams extends BaseConfig with ServiceConfigKafka with 
 
   def kafkaStreamProperties(): Properties = {
     val properties = new Properties()
-    val kafkaStreamGroupId = groupId("ks")
-    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, kafkaStreamGroupId)
-    properties.put(StreamsConfig.CLIENT_ID_CONFIG, kafkaStreamGroupId)
+    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId) // used also as group id
+    properties.put(StreamsConfig.CLIENT_ID_CONFIG, applicationId)
     properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers)
     properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE)
     properties.put(

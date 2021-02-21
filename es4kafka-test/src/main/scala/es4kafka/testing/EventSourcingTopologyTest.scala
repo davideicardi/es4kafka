@@ -15,7 +15,7 @@ class EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent, VSnapshot]
   eventSerde: Serde[Envelop[VEvent]],
   snapshotSerde: Serde[VSnapshot],
 ){
-  lazy val cmdInputTopic: InputTopicTest[K, Envelop[VCommand]] =
+  val cmdInputTopic: InputTopicTest[K, Envelop[VCommand]] =
     new InputTopicTest(driver, aggregateConfig.topicCommands)
 
   def pipeCommand(command: VCommand): MsgId = {
@@ -24,24 +24,24 @@ class EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent, VSnapshot]
     msgId
   }
 
-  lazy val eventOutputTopic: OutputTopicTest[K, Envelop[VEvent]] =
+  val eventOutputTopic: OutputTopicTest[K, Envelop[VEvent]] =
     new OutputTopicTest(driver, aggregateConfig.topicEvents)
 
   def readEvents: Seq[(K, Envelop[VEvent])] = {
     eventOutputTopic.readValuesToSeq()
   }
 
-  lazy val snapshotOutputTopic: OutputTopicTest[K, VSnapshot] =
+  val snapshotOutputTopic: OutputTopicTest[K, VSnapshot] =
     new OutputTopicTest(driver, aggregateConfig.topicSnapshots)
 
   def readSnapshots: Map[K, VSnapshot] = {
     snapshotOutputTopic.readValuesToMap()
   }
 
-  val keyValueStore: KeyValueStoreTest[K, VSnapshot] =
-    new KeyValueStoreTest[K, VSnapshot](driver, aggregateConfig.storeSnapshots)
+  val snapshotsStore: KeyValueStoreTest[K, VSnapshot] =
+    new KeyValueStoreTest(driver, aggregateConfig.storeSnapshots)
 
   def readSnapshotsFromStore: Seq[VSnapshot] = {
-    keyValueStore.readValuesToSeq()
+    snapshotsStore.readValuesToSeq()
   }
 }
