@@ -7,6 +7,7 @@ import catalog.books.akkaStream._
 import catalog.books.http.BooksRoutes
 import catalog.booksCards._
 import catalog.booksCards.http.BooksCardsRoutes
+import catalog.streaming.StreamingPipeline
 import es4kafka._
 import es4kafka.administration.KafkaTopicAdmin
 import es4kafka.akkaStream.GraphBuilder

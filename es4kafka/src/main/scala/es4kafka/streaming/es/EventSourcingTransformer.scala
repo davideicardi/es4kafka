@@ -10,12 +10,12 @@ import java.util
 import java.util.Collections
 import scala.jdk.CollectionConverters._
 
-class TransformerSupplier[TKey: Serde, TCommand, TEvent, TState >: Null : Serde](
+class EventSourcingTransformerSupplier[TKey: Serde, TCommand, TEvent, TState >: Null : Serde](
     stateStoreName: String,
     handler: EventSourcingHandler[TKey, TCommand, TEvent, TState],
 ) extends ValueTransformerWithKeySupplier[TKey, Envelop[TCommand], Iterable[Envelop[TEvent]]] {
   override def get(): ValueTransformerWithKey[TKey, Envelop[TCommand], Iterable[Envelop[TEvent]]] =
-    new Transformer(
+    new EventSourcingTransformer(
       stateStoreName,
       handler,
     )
@@ -35,7 +35,7 @@ class TransformerSupplier[TKey: Serde, TCommand, TEvent, TState >: Null : Serde]
   }
 }
 
-class Transformer[TKey, TCommand, TEvent, TState >: Null](
+class EventSourcingTransformer[TKey, TCommand, TEvent, TState >: Null](
     stateStoreName: String,
     handler: EventSourcingHandler[TKey, TCommand, TEvent, TState],
 ) extends ValueTransformerWithKey[TKey, Envelop[TCommand], Iterable[Envelop[TEvent]]] {

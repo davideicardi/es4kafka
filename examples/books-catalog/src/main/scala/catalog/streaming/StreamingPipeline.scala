@@ -1,4 +1,4 @@
-package catalog
+package catalog.streaming
 
 import catalog.authors.streaming.AuthorsTopology
 import catalog.books.streaming.BooksTopology

@@ -9,7 +9,7 @@ import org.apache.kafka.streams.state.Stores
 
 import java.util.UUID
 
-abstract class EventSourcingPipeline[TKey, TCommand, TEvent, TState >: Null](
+abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
     aggregateConfig: AggregateConfig,
 ) (
     implicit serdeKey: Serde[TKey],
@@ -33,7 +33,7 @@ abstract class EventSourcingPipeline[TKey, TCommand, TEvent, TState >: Null](
     //  failed to initialize processor
     //  Processor .. has no access to StateStore
     eventsStream = commandsStream.transformValues(
-      new TransformerSupplier(aggregateConfig.storeState, this)
+      new EventSourcingTransformerSupplier(aggregateConfig.storeState, this)
     ).flatMapValues(v => v)
     eventsStream.to(aggregateConfig.topicEvents)
 

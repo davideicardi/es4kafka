@@ -3,7 +3,7 @@ package catalog.streaming
 import catalog.authors._
 import catalog.books._
 import catalog.booksCards._
-import catalog.{Config, StreamingPipeline}
+import catalog.Config
 import com.davideicardi.kaa.SchemaRegistry
 import com.davideicardi.kaa.test.TestSchemaRegistry
 import es4kafka._
