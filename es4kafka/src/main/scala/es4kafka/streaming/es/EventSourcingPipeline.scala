@@ -22,24 +22,38 @@ abstract class EventSourcingPipeline[TKey, TCommand, TEvent, TState >: Null](
 
   var commandsStream: KStream[TKey, Envelop[TCommand]] = _
   var eventsStream: KStream[TKey, Envelop[TEvent]] = _
+  var snapshotsTable: KTable[TKey, TState] = _
 
   def prepare(streamsBuilder: StreamsBuilder): Unit = {
+    // Commands
     commandsStream = streamsBuilder.stream[TKey, Envelop[TCommand]](aggregateConfig.topicCommands)
+
+    // Events
     // TODO check why with flatTransformValues I will get an error that state store is not connected:
     //  failed to initialize processor
     //  Processor .. has no access to StateStore
     eventsStream = commandsStream.transformValues(
-      new TransformerSupplier(aggregateConfig.storeSnapshots, this)
+      new TransformerSupplier(aggregateConfig.storeState, this)
     ).flatMapValues(v => v)
-
     eventsStream.to(aggregateConfig.topicEvents)
 
-    // maybe it is better to use a windowed store (last day?) to avoid having to much data, we don't need historical data for this
-    val storeEventsByMsgId =
-      Stores.inMemoryKeyValueStore(aggregateConfig.storeEventsByMsgId)
+    // Snapshots (copy from changelog)
+    streamsBuilder
+      .stream[TKey, TState](aggregateConfig.topicStateChangelog)
+      .to(aggregateConfig.topicSnapshots)
+    val snapshotsStore = Stores.inMemoryKeyValueStore(aggregateConfig.storeSnapshots)
+    val materializedSnapshots = Materialized.as[TKey, TState](snapshotsStore)
+      .withLoggingDisabled() // disable changelog topic, it should not be useful when source is already a compacted topic
+    snapshotsTable = streamsBuilder.table[TKey, TState](aggregateConfig.topicSnapshots, materializedSnapshots)
+
+    // EventsByMsgId
+    // eval to use a windowed store (last day?) to avoid having to much data, we don't need historical data for this
+    val storeEventsByMsgId = Stores.inMemoryKeyValueStore(aggregateConfig.storeEventsByMsgId)
+    val materializedEventsByMsgId = Materialized.as[UUID, TEvent](storeEventsByMsgId)
+      .withLoggingDisabled() // disable changelog topic, it should not be useful in this case TODO verify high availability
     val _ = eventsStream
       .map((_, v) => v.msgId.uuid -> v.message)
-      .toTable(Materialized.as(storeEventsByMsgId))
+      .toTable(materializedEventsByMsgId)
   }
 }
 

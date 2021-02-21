@@ -1,6 +1,7 @@
 package es4kafka.configs
 
 import com.typesafe.config.{Config, ConfigFactory}
+import es4kafka.kafka.KafkaNamingConvention
 import org.apache.kafka.streams.StreamsConfig
 import org.apache.kafka.streams.state.HostInfo
 
@@ -38,14 +39,7 @@ trait ServiceConfigHttp {
 trait ServiceConfigKafka extends ServiceConfig {
   lazy val kafkaBrokers: String = sys.env.getOrElse("KAFKA_BROKERS", "localhost:9092")
 
-  /**
-   * Returns a group id used for Kafka. It will be composed by "{applicationId}-{scenario}"
-   * Group Id must unique for each use case. For example every Kafka Stream apps for a specific service should use
-   * the same group id.
-   * @param scenarioGroupId Unique name of the use case inside an application.
-   * @return The group id
-   */
-  def groupId(scenarioGroupId: String) = s"$applicationId-$scenarioGroupId"
+  lazy val namingConvention: KafkaNamingConvention = new KafkaNamingConvention(applicationId, boundedContext)
 }
 
 trait ServiceConfigKafkaStreams extends BaseConfig with ServiceConfigKafka with ServiceConfigHttp {
@@ -55,7 +49,7 @@ trait ServiceConfigKafkaStreams extends BaseConfig with ServiceConfigKafka with 
 
   def kafkaStreamProperties(): Properties = {
     val properties = new Properties()
-    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId)
+    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId) // used also as group id
     properties.put(StreamsConfig.CLIENT_ID_CONFIG, applicationId)
     properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers)
     properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE)
