@@ -3,6 +3,8 @@ package catalog
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
 import catalog.authors._
+import catalog.books._
+import catalog.booksCards._
 import catalog.serialization.JsonFormats._
 import com.davideicardi.kaa.SchemaRegistry
 import es4kafka.{EntityStates, Envelop, MsgId}
@@ -10,6 +12,8 @@ import es4kafka.http.HttpFetchImpl
 import es4kafka.serialization.CommonAvroSerdes._
 import es4kafka.testing.ServiceAppIntegrationSpec
 import net.codingwell.scalaguice.InjectorExtensions._
+
+import java.util.UUID
 
 class CatalogIntegrationTest extends ServiceAppIntegrationSpec("CatalogIntegrationTest") {
   it("should override config") {
@@ -40,6 +44,41 @@ class CatalogIntegrationTest extends ServiceAppIntegrationSpec("CatalogIntegrati
         kafkaSnapshots should have size (1)
         kafkaSnapshots should be(Seq(
           "king" -> Author(EntityStates.VALID, "king", "Stephen", "King")
+        ))
+      }
+    }
+  }
+
+  it("should be able to create books cards") {
+    withRunningService(Config, EntryPoint.installers, () => EntryPoint.init()) { injector =>
+      implicit val schemaRegistry: SchemaRegistry = injector.instance[SchemaRegistry]
+      implicit val actorSystem: ActorSystem = injector.instance[ActorSystem]
+
+      val http = new HttpFetchImpl()
+      val bookId = UUID.randomUUID()
+      for {
+        _ <- http.post[AuthorCommand, MsgId](
+          Uri("http://localhost:9081/authors/commands"),
+          CreateAuthor("king", "Stephen", "King")
+        )
+        _ <- http.post[BookCommand, MsgId](
+          Uri("http://localhost:9081/books/commands"),
+          CreateBook("Misery", bookId)
+        )
+        _ <- http.post[BookCommand, MsgId](
+          Uri("http://localhost:9081/books/commands"),
+          SetBookAuthor(bookId, Some("king"))
+        )
+        kafkaBCSnapshots <- readAllKafkaRecords[UUID, BookCard](injector, Config.BookCard.topicSnapshots, 1)
+        cards <- http.fetch[Seq[BookCard]](Uri("http://localhost:9081/booksCards/all"))
+      } yield {
+        val expectedBookCard = BookCard(Book(bookId, "Misery", Some("king")), Author("king", "Stephen", "King"))
+        kafkaBCSnapshots should be(Seq(
+          bookId -> expectedBookCard
+        ))
+        cards should have size (1)
+        cards should be(Seq(
+          expectedBookCard
         ))
       }
     }
