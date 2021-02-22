@@ -48,8 +48,14 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
 
         val snapshotsFromStore = authorsTest.readSnapshotsFromStore
         snapshotsFromStore should have size 2
-        snapshotsFromStore should contain(Author("spider-man", "Miles", "Morales"))
-        snapshotsFromStore should contain(Author("superman", "Clark", "Kent"))
+        snapshotsFromStore should contain("spider-man" -> Author("spider-man", "Miles", "Morales"))
+        snapshotsFromStore should contain("superman" -> Author("superman", "Clark", "Kent"))
+
+        val eventsByMsgIdFromStore = authorsTest.readEventsByMsgIdFromStore
+        eventsByMsgIdFromStore should have size 3
+        eventsByMsgIdFromStore should contain(cmdId1.uuid -> EventList(Seq(AuthorCreated("spider-man", "Peter", "Parker"))))
+        eventsByMsgIdFromStore should contain(cmdId2.uuid -> EventList(Seq(AuthorCreated("superman", "Clark", "Kent"))))
+        eventsByMsgIdFromStore should contain(cmdId3.uuid -> EventList(Seq(AuthorUpdated("spider-man", "Miles", "Morales"))))
       }
     }
 
@@ -119,8 +125,14 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
 
         val snapshotsFromStore = booksTest.readSnapshotsFromStore
         snapshotsFromStore should have size 2
-        snapshotsFromStore should contain(Book(cmd2.id, cmd2.title))
-        snapshotsFromStore should contain(Book(cmd1.id, cmd1.title, author = Some("snow")))
+        snapshotsFromStore should contain(cmd2.key -> Book(cmd2.id, cmd2.title))
+        snapshotsFromStore should contain(cmd1.key -> Book(cmd1.id, cmd1.title, author = Some("snow")))
+
+        val eventsByMsgIdFromStore = booksTest.readEventsByMsgIdFromStore
+        eventsByMsgIdFromStore should have size 3
+        eventsByMsgIdFromStore should contain(cmdId1.uuid -> EventList(Seq(BookCreated(cmd1.id, cmd1.title))))
+        eventsByMsgIdFromStore should contain(cmdId2.uuid -> EventList(Seq(BookCreated(cmd2.id, cmd2.title))))
+        eventsByMsgIdFromStore should contain(cmdId3.uuid -> EventList(Seq(BookAuthorSet(cmd1.id, Some("snow")))))
       }
     }
   }

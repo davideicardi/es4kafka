@@ -1,13 +1,11 @@
 package es4kafka.streaming.es
 
-import es4kafka.{AggregateConfig, Envelop}
+import es4kafka.{AggregateConfig, Envelop, EventList}
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.scala.StreamsBuilder
 import org.apache.kafka.streams.scala.kstream._
 import org.apache.kafka.streams.state.Stores
-
-import java.util.UUID
 
 abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
     aggregateConfig: AggregateConfig,
@@ -15,9 +13,8 @@ abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
     implicit serdeKey: Serde[TKey],
     serdeCommandE: Serde[Envelop[TCommand]],
     serdeEventE: Serde[Envelop[TEvent]],
-    serdeEvent: Serde[TEvent],
+    serdeEventEList: Serde[EventList[TEvent]],
     serdeState: Serde[TState],
-    serdeUUID: Serde[UUID],
 ) extends EventSourcingHandler[TKey, TCommand, TEvent, TState] {
 
   var commandsStream: KStream[TKey, Envelop[TCommand]] = _
@@ -33,7 +30,7 @@ abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
     //  failed to initialize processor
     //  Processor .. has no access to StateStore
     eventsStream = commandsStream.transformValues(
-      new EventSourcingTransformerSupplier(aggregateConfig.storeState, this)
+      new EventSourcingTransformerSupplier(aggregateConfig.storeState, aggregateConfig.storeEventsByMsgId, this)
     ).flatMapValues(v => v)
     eventsStream.to(aggregateConfig.topicEvents)
 
@@ -45,15 +42,6 @@ abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
     val materializedSnapshots = Materialized.as[TKey, TState](snapshotsStore)
       .withLoggingDisabled() // disable changelog topic, it should not be useful when source is already a compacted topic
     snapshotsTable = streamsBuilder.table[TKey, TState](aggregateConfig.topicSnapshots, materializedSnapshots)
-
-    // EventsByMsgId
-    // eval to use a windowed store (last day?) to avoid having to much data, we don't need historical data for this
-    val storeEventsByMsgId = Stores.inMemoryKeyValueStore(aggregateConfig.storeEventsByMsgId)
-    val materializedEventsByMsgId = Materialized.as[UUID, TEvent](storeEventsByMsgId)
-      .withLoggingDisabled() // disable changelog topic, it should not be useful in this case TODO verify high availability
-    val _ = eventsStream
-      .map((_, v) => v.msgId.uuid -> v.message)
-      .toTable(materializedEventsByMsgId)
   }
 }
 

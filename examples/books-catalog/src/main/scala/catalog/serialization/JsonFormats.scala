@@ -17,6 +17,7 @@ object JsonFormats extends CommonJsonFormats {
   implicit val SetBookAuthorFormat: RootJsonFormat[SetBookAuthor] = jsonFormat2(SetBookAuthor)
   implicit val AddChapterFormat: RootJsonFormat[AddChapter] = jsonFormat3(AddChapter)
   implicit val RemoveChapterFormat: RootJsonFormat[RemoveChapter] = jsonFormat2(RemoveChapter)
+  implicit val RemoveBookFormat: RootJsonFormat[RemoveBook] = jsonFormat1(RemoveBook)
   implicit object BookCommandFormat extends RootJsonFormat[BookCommand] {
     def write(value: BookCommand): JsValue = {
       val fields = value match {
@@ -24,6 +25,7 @@ object JsonFormats extends CommonJsonFormats {
         case e: SetBookAuthor => e.toJson.asJsObject.fields
         case e: AddChapter => e.toJson.asJsObject.fields
         case e: RemoveChapter => e.toJson.asJsObject.fields
+        case e: RemoveBook => e.toJson.asJsObject.fields
         case _: UnknownBookCommand => throw new UnknownCommandException("Unknown command")
       }
       val extendedFields = fields ++ Seq(
@@ -42,6 +44,7 @@ object JsonFormats extends CommonJsonFormats {
           case JsString("SetBookAuthor") => jsObj.convertTo[SetBookAuthor]
           case JsString("AddChapter") => jsObj.convertTo[AddChapter]
           case JsString("RemoveChapter") => jsObj.convertTo[RemoveChapter]
+          case JsString("RemoveBook") => jsObj.convertTo[RemoveBook]
           case cmdType => throw DeserializationException(s"Command type not valid: $cmdType")
         }
         case _ => throw DeserializationException("Expected json object")
@@ -54,6 +57,7 @@ object JsonFormats extends CommonJsonFormats {
   implicit val bookAuthorSetFormat: RootJsonFormat[BookAuthorSet] = jsonFormat2(BookAuthorSet)
   implicit val bookChapterAddedFormat: RootJsonFormat[ChapterAdded] = jsonFormat4(ChapterAdded)
   implicit val bookChapterRemovedFormat: RootJsonFormat[ChapterRemoved] = jsonFormat2(ChapterRemoved)
+  implicit val bookRemovedFormat: RootJsonFormat[BookRemoved] = jsonFormat1(BookRemoved)
   implicit val bookError: RootJsonFormat[BookError] = jsonFormat2(BookError)
   implicit object BookEventFormat extends RootJsonFormat[BookEvent] {
     def write(value: BookEvent): JsValue = {
@@ -63,6 +67,7 @@ object JsonFormats extends CommonJsonFormats {
         case e: ChapterAdded => e.toJson.asJsObject.fields
         case e: ChapterRemoved => e.toJson.asJsObject.fields
         case e: BookError => e.toJson.asJsObject.fields
+        case e: BookRemoved => e.toJson.asJsObject.fields
         case _: UnknownBookEvent => throw new UnknownEventException("Unknown event")
       }
       val extendedFields = fields ++ Seq(
@@ -83,6 +88,7 @@ object JsonFormats extends CommonJsonFormats {
           case JsString("ChapterAdded") => jsObj.convertTo[ChapterAdded]
           case JsString("ChapterRemoved") => jsObj.convertTo[ChapterRemoved]
           case JsString("BookError") => jsObj.convertTo[BookError]
+          case JsString("BookRemoved") => jsObj.convertTo[BookRemoved]
           case evType => throw DeserializationException(s"Event type not valid: $evType")
         }
         case _ => throw DeserializationException("Expected json object")

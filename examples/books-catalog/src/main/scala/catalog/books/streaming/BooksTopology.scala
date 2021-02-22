@@ -17,8 +17,8 @@ class BooksTopology() (
    */
   override def handle(key: UUID, command: BookCommand, state: Option[Book]): (Seq[BookEvent], Option[Book]) = {
     val entity = state.getOrElse(Book.draft)
-    val event = entity.handle(command)
-    val newState = entity.apply(event)
-    (Seq(event), Some(newState))
+    val events = entity.handle(command)
+    val newState = entity.apply(events)
+    (events, Some(newState))
   }
 }
