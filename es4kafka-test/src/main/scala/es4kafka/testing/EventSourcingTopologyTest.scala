@@ -4,7 +4,9 @@ import es4kafka._
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.TopologyTestDriver
 
-class EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent, VSnapshot]
+import java.util.UUID
+
+class EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent <: Event, VSnapshot]
 (
   aggregateConfig: AggregateConfig,
   driver: TopologyTestDriver,
@@ -41,7 +43,14 @@ class EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent, VSnapshot]
   val snapshotsStore: KeyValueStoreTest[K, VSnapshot] =
     new KeyValueStoreTest(driver, aggregateConfig.storeSnapshots)
 
-  def readSnapshotsFromStore: Seq[VSnapshot] = {
+  def readSnapshotsFromStore: Seq[(K, VSnapshot)] = {
     snapshotsStore.readValuesToSeq()
+  }
+
+  val eventsByMsgIdStore: KeyValueStoreTest[UUID, EventList[VEvent]] =
+    new KeyValueStoreTest(driver, aggregateConfig.storeEventsByMsgId)
+
+  def readEventsByMsgIdFromStore: Seq[(UUID, EventList[VEvent])] = {
+    eventsByMsgIdStore.readValuesToSeq()
   }
 }

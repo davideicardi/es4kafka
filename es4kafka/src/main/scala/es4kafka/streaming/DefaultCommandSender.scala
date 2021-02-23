@@ -19,7 +19,7 @@ class DefaultCommandSender[TKey, TCommand <: Command[TKey], TEvent <: Event] (
 )(
     implicit keyAvroSerde: Serde[TKey],
     commandAvroSerde: Serde[Envelop[TCommand]],
-    eventJsonFormat: RootJsonFormat[TEvent],
+    eventJsonFormat: RootJsonFormat[EventList[TEvent]],
 ) extends CommandSenderBase[TKey, TCommand, TEvent](actorSystem, metadataService, keyValueStateStoreAccessor, producerFactory) with CommandSender[TKey, TCommand, TEvent] {
 
   def send(command: TCommand): Future[MsgId] =
@@ -28,7 +28,7 @@ class DefaultCommandSender[TKey, TCommand <: Command[TKey], TEvent <: Event] (
   def wait(
       id: MsgId,
       retries: Int = 10,
-      delay: FiniteDuration = 500.milliseconds): Future[Option[TEvent]] =
+      delay: FiniteDuration = 500.milliseconds): Future[Option[EventList[TEvent]]] =
     super.wait(extractStoreName(), extractRemoteHttpPath, id, retries, delay)
 
   private def extractTopicName(): String = {

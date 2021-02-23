@@ -95,12 +95,12 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
 
     it("should get an author event") {
       val msgId = MsgId.random()
-      val returningEvent = AuthorUpdated("code1", "name1", "lastName1")
+      val returningEvent = EventList.single(AuthorUpdated("code1", "name1", "lastName1"))
       val cmdSender = mockCmdWait(msgId, Some(returningEvent))
 
       Get("/authors/events/one/" + msgId.uuid.toString) ~> targetRoute(commandSender = cmdSender) ~> check {
         response.status should be (StatusCodes.OK)
-        responseAs[AuthorEvent] should be(returningEvent)
+        responseAs[EventList[AuthorEvent]] should be(returningEvent)
       }
     }
 
@@ -127,13 +127,13 @@ class AuthorsRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest
 
   private def mockCmdWait(
                            expectedMsgId: MsgId,
-                           returningEvent: Option[AuthorEvent]
+                           returningEvent: Option[EventList[AuthorEvent]]
                          ): CommandSender[String, AuthorCommand, AuthorEvent] = {
     val cmdSender = mock[CommandSender[String, AuthorCommand, AuthorEvent]]
 
     val _ = (cmdSender.wait(_: MsgId, _: Int, _: FiniteDuration))
       .expects(expectedMsgId, *, *)
-      .returning(Future(returningEvent)).once()
+      .returning(Future.successful(returningEvent)).once()
 
     cmdSender
   }

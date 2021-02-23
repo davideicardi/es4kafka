@@ -27,3 +27,6 @@ case class BookError(id: UUID, error: String) extends BookEvent {
   override def ignoreForSnapshot: Boolean = true
   override def isError: Boolean = true
 }
+
+@AvroSortPriority(-6)
+case class BookRemoved(id: UUID) extends BookEvent

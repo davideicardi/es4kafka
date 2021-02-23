@@ -1,18 +1,19 @@
 package es4kafka.serialization
 
-import java.util.UUID
-import es4kafka.MsgId
 import es4kafka.streaming.MetadataStoreInfo
+import es4kafka._
 import spray.json.DefaultJsonProtocol
-import es4kafka.EntityStates
 
 import java.time.Instant
+import java.util.UUID
 
 trait CommonJsonFormats extends DefaultJsonProtocol {
 
   import spray.json._
 
   implicit val HostStoreInfoFormat: RootJsonFormat[MetadataStoreInfo] = jsonFormat3(MetadataStoreInfo)
+
+  implicit def EventListFormat[E: JsonFormat]: RootJsonFormat[EventList[E]] = jsonFormat1(EventList.apply[E])
 
   implicit object UUIDFormat extends RootJsonFormat[UUID] {
     def write(uuid: UUID): JsString = JsString(uuid.toString)

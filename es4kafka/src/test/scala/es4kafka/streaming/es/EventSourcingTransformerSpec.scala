@@ -1,6 +1,6 @@
 package es4kafka.streaming.es
 
-import es4kafka.{Envelop, MsgId}
+import es4kafka.{Envelop, EventList, MsgId}
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.KeyValue
 import org.apache.kafka.streams.processor.{ProcessorContext, StateStore}
@@ -11,17 +11,22 @@ import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.util
+import java.util.UUID
 
 class EventSourcingTransformerSpec extends AnyFunSpec with Matchers with MockFactory {
   implicit val serdeInt: Serde[Int] = Serdes.Integer
   implicit val serdeString: Serde[String] = Serdes.String
-  val target = new EventSourcingTransformer[Int, Int, Int, String]("storeName1", new FakeHandler())
+  val target = new EventSourcingTransformer[Int, Int, Int, String](
+    "storeName1", "storeName2", new FakeHandler()
+  )
   it("should get the correct state store during init") {
     val processorContext = mock[ProcessorContext]
     (processorContext.getStateStore _)
       .expects("storeName1")
       .returns(new FakeStateStore())
-
+    (processorContext.getStateStore _)
+      .expects("storeName2")
+      .returns(new FakeEventsStore())
     target.init(processorContext)
 
     succeed
@@ -29,10 +34,14 @@ class EventSourcingTransformerSpec extends AnyFunSpec with Matchers with MockFac
 
   it("should transform values calling the handler") {
     val stateStore = new FakeStateStore()
+    val eventsStore = new FakeEventsStore()
     val processorContext = mock[ProcessorContext]
     (processorContext.getStateStore _)
       .expects("storeName1")
       .returns(stateStore)
+    (processorContext.getStateStore _)
+      .expects("storeName2")
+      .returns(eventsStore)
 
     target.init(processorContext)
 
@@ -48,6 +57,11 @@ class EventSourcingTransformerSpec extends AnyFunSpec with Matchers with MockFac
 
     stateStore.get(0) should be("3")
     stateStore.get(1) should be("30")
+
+    eventsStore.get(msgId1.uuid) should be(EventList(Seq(1)))
+    eventsStore.get(msgId2.uuid) should be(EventList(Seq(2)))
+    eventsStore.get(msgId3.uuid) should be(EventList(Seq(10)))
+    eventsStore.get(msgId4.uuid) should be(EventList(Seq(20)))
   }
 
   class FakeStateStore extends KeyValueStore[Int, String] {
@@ -79,6 +93,41 @@ class EventSourcingTransformerSpec extends AnyFunSpec with Matchers with MockFac
     override def range(from: Int, to: Int): KeyValueIterator[Int, String] = throw new Exception("Not implemented")
 
     override def all(): KeyValueIterator[Int, String] = throw new Exception("Not implemented")
+
+    override def approximateNumEntries(): Long = throw new Exception("Not implemented")
+  }
+
+  class FakeEventsStore extends KeyValueStore[UUID, EventList[Int]] {
+    private val data = scala.collection.mutable.Map[UUID, EventList[Int]]()
+    override def put(key: UUID, value: EventList[Int]): Unit = {
+      val _ = data.put(key, value)
+    }
+
+    override def putIfAbsent(key: UUID, value: EventList[Int]): EventList[Int] = throw new Exception("Not implemented")
+
+    override def putAll(entries: util.List[KeyValue[UUID, EventList[Int]]]): Unit = throw new Exception("Not implemented")
+
+    override def delete(key: UUID): EventList[Int] = throw new Exception("Not implemented")
+
+    override def name(): String = throw new Exception("Not implemented")
+
+    override def init(context: ProcessorContext, root: StateStore): Unit = throw new Exception("Not implemented")
+
+    override def flush(): Unit = throw new Exception("Not implemented")
+
+    override def close(): Unit = throw new Exception("Not implemented")
+
+    override def persistent(): Boolean = throw new Exception("Not implemented")
+
+    override def isOpen: Boolean = throw new Exception("Not implemented")
+
+    override def get(key: UUID): EventList[Int] = {
+      data.get(key).orNull
+    }
+
+    override def range(from: UUID, to: UUID): KeyValueIterator[UUID, EventList[Int]] = throw new Exception("Not implemented")
+
+    override def all(): KeyValueIterator[UUID, EventList[Int]] = throw new Exception("Not implemented")
 
     override def approximateNumEntries(): Long = throw new Exception("Not implemented")
   }

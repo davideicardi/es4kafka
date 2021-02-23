@@ -75,12 +75,12 @@ class BooksRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest w
 
     it("should get a book event") {
       val msgId = MsgId.random()
-      val returningEvent = BookCreated(UUID.randomUUID(), "Delitto e Castigo")
+      val returningEvent = EventList.single(BookCreated(UUID.randomUUID(), "Delitto e Castigo"))
       val cmdSender = mockCmdWait(msgId, Some(returningEvent))
 
       Get("/books/events/one/" + msgId.uuid.toString) ~> targetRoute(commandSender = cmdSender) ~> check {
         response.status should be (StatusCodes.OK)
-        responseAs[BookEvent] should be(returningEvent)
+        responseAs[EventList[BookEvent]] should be(returningEvent)
       }
     }
   }
@@ -98,13 +98,13 @@ class BooksRoutesSpec extends AnyFunSpec with Matchers with ScalatestRouteTest w
 
   private def mockCmdWait(
                            expectedMsgId: MsgId,
-                           returningEvent: Option[BookEvent]
+                           returningEvent: Option[EventList[BookEvent]]
                          ): CommandSender[UUID, BookCommand, BookEvent] = {
     val cmdSender = mock[CommandSender[UUID, BookCommand, BookEvent]]
 
     val _ = (cmdSender.wait(_: MsgId, _: Int, _: FiniteDuration))
       .expects(expectedMsgId, *, *)
-      .returning(Future(returningEvent)).once()
+      .returning(Future.successful(returningEvent)).once()
 
     cmdSender
   }

@@ -22,3 +22,5 @@ case class SetBookAuthor(id: UUID, author: Option[String]) extends BookCommand
 case class AddChapter(id: UUID, title: String, content: String) extends BookCommand
 @AvroSortPriority(-4)
 case class RemoveChapter(id: UUID, chapterId: Int) extends BookCommand
+@AvroSortPriority(-5)
+case class RemoveBook(id: UUID) extends BookCommand
