@@ -35,12 +35,12 @@ abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
     eventsStream.to(aggregateConfig.topicEvents)
 
     // Snapshots (copy from changelog)
+    // I essentially copy that to do not rely on the "changelog" topic that is handled by Kafka Streams.
     streamsBuilder
       .stream[TKey, TState](aggregateConfig.topicStateChangelog)
       .to(aggregateConfig.topicSnapshots)
     val snapshotsStore = Stores.inMemoryKeyValueStore(aggregateConfig.storeSnapshots)
     val materializedSnapshots = Materialized.as[TKey, TState](snapshotsStore)
-      .withLoggingDisabled() // disable changelog topic, it should not be useful when source is already a compacted topic
     snapshotsTable = streamsBuilder.table[TKey, TState](aggregateConfig.topicSnapshots, materializedSnapshots)
   }
 }
