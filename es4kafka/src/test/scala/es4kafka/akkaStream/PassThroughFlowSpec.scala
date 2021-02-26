@@ -7,7 +7,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AsyncFunSpecLike
 import org.scalatest.matchers.should.Matchers
 
-class PassThroughFlowSpec extends TestKit(ActorSystem("AdapterControlGraphSpec")) with AsyncFunSpecLike with BeforeAndAfterAll with Matchers {
+class PassThroughFlowSpec extends TestKit(ActorSystem("PassThroughFlowSpec")) with AsyncFunSpecLike with BeforeAndAfterAll with Matchers {
   override protected def afterAll(): Unit = TestKit.shutdownActorSystem(system)
 
   describe("PassThroughFlow") {

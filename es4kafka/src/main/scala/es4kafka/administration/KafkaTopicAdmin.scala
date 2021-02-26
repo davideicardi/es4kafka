@@ -57,10 +57,10 @@ class KafkaTopicAdmin(
   def addAggregate(aggregateConfig: AggregateConfig): KafkaTopicAdmin = {
     addPersistentTopic(aggregateConfig.topicCommands)
     addPersistentTopic(aggregateConfig.topicEvents)
-    addPersistentTopic(aggregateConfig.topicSnapshots, compact = true)
-    // changelog topic is created automatically by Kafka Streams, but we need it as an input streams
+    // changelog topic is created automatically by Kafka Streams,
+    // but to be explicit we create it, also because we can need it as an input streams
     // so we force it creating at startup
-    addPersistentTopic(aggregateConfig.topicStateChangelog, compact = true)
+    addPersistentTopic(aggregateConfig.topicSnapshots, compact = true)
   }
 
   def addProjection(projectionConfig: ProjectionConfig): KafkaTopicAdmin = {
