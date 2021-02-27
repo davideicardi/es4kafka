@@ -95,6 +95,7 @@ lazy val sample_books_catalog = (project in file("examples/books-catalog"))
         .configs(IntegrationTest)
         .settings(
             name := "sample-books-catalog",
+            fork := true,
             Defaults.itSettings,
             publish / skip := true,
             libraryDependencies ++= testDependencies("it, test"),
@@ -105,6 +106,7 @@ lazy val sample_bank_account = (project in file("examples/bank-account"))
         .configs(IntegrationTest)
         .settings(
             name := "sample-bank-account",
+            fork := true,
             Defaults.itSettings,
             publish / skip := true,
             libraryDependencies ++= testDependencies("it, test"),

@@ -39,7 +39,7 @@ trait ServiceConfigHttp {
 trait ServiceConfigKafka extends ServiceConfig {
   lazy val kafkaBrokers: String = sys.env.getOrElse("KAFKA_BROKERS", "localhost:9092")
 
-  lazy val namingConvention: KafkaNamingConvention = new KafkaNamingConvention(applicationId, boundedContext)
+  lazy val namingConvention: KafkaNamingConvention = new KafkaNamingConvention(applicationId)
 }
 
 trait ServiceConfigKafkaStreams extends BaseConfig with ServiceConfigKafka with ServiceConfigHttp {

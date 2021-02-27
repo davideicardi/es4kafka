@@ -6,13 +6,13 @@ trait AggregateConfig {
   val aggregateName: String
   val namingConvention: KafkaNamingConvention
 
-  lazy val storeSnapshots: String = namingConvention.kafkaStreamsStore(s"$aggregateName.snapshots")
-  lazy val storeEventsByMsgId: String = namingConvention.kafkaStreamsStore(s"$aggregateName.eventsByMsgId")
+  lazy val storeSnapshots: String = namingConvention.store(aggregateName)
+  lazy val storeEventsByMsgId: String = namingConvention.store(s"$aggregateName.eventsByMsgId")
 
-  lazy val topicCommands: String = namingConvention.kafkaCommandsTopic(aggregateName)
-  lazy val topicEvents: String = namingConvention.kafkaEventsTopic(aggregateName)
+  lazy val topicCommands: String = namingConvention.topicCommands(aggregateName)
+  lazy val topicEvents: String = namingConvention.topicEvents(aggregateName)
   // Snapshots are handled internally by the changelog topic created to store snapshot state
-  lazy val topicSnapshots: String = namingConvention.kafkaStreamsChangelogTopic(storeSnapshots)
+  lazy val topicSnapshots: String = namingConvention.topicStoreChangelog(storeSnapshots)
 
   // HTTP RPC segments
   lazy val httpPrefix: String = aggregateName
