@@ -1,21 +1,33 @@
 package es4kafka.kafka
 
+object KafkaNamingConvention {
+  val EVENTS: String = "events"
+  val COMMANDS: String = "commands"
+  val CHANGELOG: String = "changelog"
+  val SNAPSHOTS: String = "snapshots"
+
+  def topicRef(appId: String, name: String, kind: String): String = s"$appId-$name-$kind"
+  def topicRefSnapshots(appId: String, name: String): String = topicRef(appId, name, SNAPSHOTS)
+  def topicRefChangelog(appId: String, name: String): String = topicRef(appId, name, CHANGELOG)
+  def topicRefEvents(appId: String, name: String): String = topicRef(appId, name, EVENTS)
+}
+
 class KafkaNamingConvention(
     applicationId: String,
 ) {
   /**
    * Use the same convention of the changelog to have the same names on topics
    */
-  def topic(name: String, kind: String): String = s"$applicationId-$name-$kind"
+  def topic(name: String, kind: String): String = KafkaNamingConvention.topicRef(applicationId, name, kind)
 
-  def topicEvents(name: String): String = topic(name, "events")
-  def topicCommands(name: String): String = topic(name, "commands")
-  def topicSnapshots(name: String): String = topic(name, "snapshots")
+  def topicEvents(name: String): String = topic(name, KafkaNamingConvention.EVENTS)
+  def topicCommands(name: String): String = topic(name, KafkaNamingConvention.COMMANDS)
+  def topicSnapshots(name: String): String = topic(name, KafkaNamingConvention.SNAPSHOTS)
 
   /**
    * Changelog topic name is fixed and follows always the convention `{appId}-{storeName}-changelog``
    */
-  def topicStoreChangelog(storeName: String): String = topic(storeName, "changelog")
+  def topicStoreChangelog(storeName: String): String = topic(storeName, KafkaNamingConvention.CHANGELOG)
 
   def store(name: String): String = name
 
