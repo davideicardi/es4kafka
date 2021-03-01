@@ -4,10 +4,8 @@ object KafkaNamingConvention {
   val EVENTS: String = "events"
   val COMMANDS: String = "commands"
   val CHANGELOG: String = "changelog"
-  val SNAPSHOTS: String = "snapshots"
 
   def topicRef(appId: String, name: String, kind: String): String = s"$appId-$name-$kind"
-  def topicRefSnapshots(appId: String, name: String): String = topicRef(appId, name, SNAPSHOTS)
   def topicRefChangelog(appId: String, name: String): String = topicRef(appId, name, CHANGELOG)
   def topicRefEvents(appId: String, name: String): String = topicRef(appId, name, EVENTS)
 }
@@ -22,10 +20,9 @@ class KafkaNamingConvention(
 
   def topicEvents(name: String): String = topic(name, KafkaNamingConvention.EVENTS)
   def topicCommands(name: String): String = topic(name, KafkaNamingConvention.COMMANDS)
-  def topicSnapshots(name: String): String = topic(name, KafkaNamingConvention.SNAPSHOTS)
 
   /**
-   * Changelog topic name is fixed and follows always the convention `{appId}-{storeName}-changelog``
+   * Changelog topic name is fixed and follows always the convention `{appId}-{storeName}-changelog`
    */
   def topicStoreChangelog(storeName: String): String = topic(storeName, KafkaNamingConvention.CHANGELOG)
 
