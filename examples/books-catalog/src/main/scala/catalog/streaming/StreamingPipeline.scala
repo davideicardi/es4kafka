@@ -30,7 +30,7 @@ class StreamingPipeline @Inject()(
 
     logger.info("Create bookcards topology ...")
     val booksCards = new BooksCardsTopology()
-    booksCards.prepare(books.snapshotsTable(streamBuilder), authors.snapshotsTable(streamBuilder))
+    booksCards.prepare(books.changelogTable(streamBuilder), authors.changelogTable(streamBuilder))
 
     streamBuilder
   }

@@ -19,7 +19,7 @@ abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
   var commandsStream: KStream[TKey, Envelop[TCommand]] = _
   var eventsStream: KStream[TKey, Envelop[TEvent]] = _
 
-  def snapshotsTable(streamsBuilder: StreamsBuilder): KTable[TKey, TState] = {
+  def changelogTable(streamsBuilder: StreamsBuilder): KTable[TKey, TState] = {
     streamsBuilder.table[TKey, TState](aggregateConfig.topicChangelog)
   }
 
