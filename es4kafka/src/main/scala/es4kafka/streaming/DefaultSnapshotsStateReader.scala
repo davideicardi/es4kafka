@@ -20,7 +20,7 @@ class DefaultSnapshotsStateReader[TKey: Serde, TValue <: StatefulEntity : RootJs
 
   def fetchAll(onlyLocal: Boolean): Future[Seq[TValue]] = {
     fetchAll(
-      aggregateConfig.storeSnapshots,
+      aggregateConfig.storeChangelog,
       fetchAllRemotePath,
       onlyLocal
     ).map(items => items.filter(_.isValid))
@@ -28,7 +28,7 @@ class DefaultSnapshotsStateReader[TKey: Serde, TValue <: StatefulEntity : RootJs
 
   def fetchOne(key: TKey): Future[Option[TValue]] = {
     fetchOne(
-      _ => aggregateConfig.storeSnapshots,
+      _ => aggregateConfig.storeChangelog,
       fetchOneRemotePath,
       key
     ).map(item => item.filter(_.isValid))

@@ -34,14 +34,14 @@ class EventSourcingTopologyTest[K, VCommand <: Command[K], VEvent <: Event, VSna
   }
 
   val snapshotOutputTopic: OutputTopicTest[K, VSnapshot] =
-    new OutputTopicTest(driver, aggregateConfig.topicSnapshots)
+    new OutputTopicTest(driver, aggregateConfig.topicChangelog)
 
   def readSnapshots: Map[K, VSnapshot] = {
     snapshotOutputTopic.readValuesToMap()
   }
 
   val snapshotsStore: KeyValueStoreTest[K, VSnapshot] =
-    new KeyValueStoreTest(driver, aggregateConfig.storeSnapshots)
+    new KeyValueStoreTest(driver, aggregateConfig.storeChangelog)
 
   def readSnapshotsFromStore: Seq[(K, VSnapshot)] = {
     snapshotsStore.readValuesToSeq()

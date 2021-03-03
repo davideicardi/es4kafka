@@ -20,7 +20,7 @@ abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
   var eventsStream: KStream[TKey, Envelop[TEvent]] = _
 
   def snapshotsTable(streamsBuilder: StreamsBuilder): KTable[TKey, TState] = {
-    streamsBuilder.table[TKey, TState](aggregateConfig.topicSnapshots)
+    streamsBuilder.table[TKey, TState](aggregateConfig.topicChangelog)
   }
 
   def prepare(streamsBuilder: StreamsBuilder): Unit = {
@@ -32,7 +32,7 @@ abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
     //  failed to initialize processor
     //  Processor .. has no access to StateStore
     eventsStream = commandsStream.transformValues(
-      new EventSourcingTransformerSupplier(aggregateConfig.storeSnapshots, aggregateConfig.storeEventsByMsgId, this)
+      new EventSourcingTransformerSupplier(aggregateConfig.storeChangelog, aggregateConfig.storeEventsByMsgId, this)
     ).flatMapValues(v => v)
     eventsStream.to(aggregateConfig.topicEvents)
   }

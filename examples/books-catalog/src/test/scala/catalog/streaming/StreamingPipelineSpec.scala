@@ -157,7 +157,7 @@ class StreamingPipelineSpec extends AnyFunSpec with Matchers with MockFactory {
         booksTest.pipeCommand(SetBookAuthor(bookId3, Some("eco")))
         authorsTest.pipeCommand(DeleteAuthor("eco"))
 
-        val snapshotTopic = new OutputTopicTest[UUID, BookCard](driver, Config.BookCard.topicSnapshots)
+        val snapshotTopic = new OutputTopicTest[UUID, BookCard](driver, Config.BookCard.topicChangelog)
         val snapshots = snapshotTopic.readValuesToSeq()
         snapshots should have size 4
         snapshots should contain(

@@ -21,7 +21,7 @@ class BooksCardsTopology()(
       authorTable: KTable[String, Author],
   ): Unit = {
     val storeSnapshots =
-      Stores.inMemoryKeyValueStore(Config.BookCard.storeSnapshots)
+      Stores.inMemoryKeyValueStore(Config.BookCard.storeChangelog)
 
     val _ = bookTable
       .filter((_, v) => v.author.isDefined)

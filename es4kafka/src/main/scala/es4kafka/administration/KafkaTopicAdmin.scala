@@ -57,11 +57,11 @@ class KafkaTopicAdmin(
   def addAggregate(aggregateConfig: AggregateConfig): KafkaTopicAdmin = {
     addPersistentTopic(aggregateConfig.topicCommands)
     addPersistentTopic(aggregateConfig.topicEvents)
-    addPersistentTopic(aggregateConfig.topicSnapshots, compact = true)
+    addPersistentTopic(aggregateConfig.topicChangelog, compact = true)
   }
 
   def addProjection(projectionConfig: ProjectionConfig): KafkaTopicAdmin = {
-    addPersistentTopic(projectionConfig.topicSnapshots, compact = true)
+    addPersistentTopic(projectionConfig.topicChangelog, compact = true)
   }
 
   def addPersistentTopic(name: String, compact: Boolean = false): KafkaTopicAdmin = {

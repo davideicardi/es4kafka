@@ -7,9 +7,9 @@ trait ProjectionConfig {
   val namingConvention: KafkaNamingConvention
 
   // Snapshots are handled internally by the changelog topic created to store snapshot state
-  lazy val topicSnapshots: String = namingConvention.topicStoreChangelog(storeSnapshots)
+  lazy val topicChangelog: String = namingConvention.topicStoreChangelog(storeChangelog)
 
-  lazy val storeSnapshots: String = namingConvention.store(projectionName)
+  lazy val storeChangelog: String = namingConvention.store(projectionName)
 
   // HTTP RPC segments
   lazy val httpPrefix: String = projectionName
