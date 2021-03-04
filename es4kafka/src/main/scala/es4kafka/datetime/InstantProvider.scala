@@ -3,7 +3,7 @@ package es4kafka.datetime
 import java.time.Instant
 
 object InstantProvider {
-  var current: InstantProvider = new DefaultInstantProvider
+  val default: InstantProvider = new DefaultInstantProvider
 }
 
 trait InstantProvider {
