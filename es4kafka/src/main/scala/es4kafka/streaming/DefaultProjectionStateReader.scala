@@ -20,7 +20,7 @@ class DefaultProjectionStateReader[TKey: Serde, TValue: RootJsonFormat] (
 
   def fetchAll(onlyLocal: Boolean): Future[Seq[TValue]] = {
     fetchAll(
-      projectionConfig.storeSnapshots,
+      projectionConfig.storeChangelog,
       fetchAllRemotePath,
       onlyLocal
     )
@@ -28,7 +28,7 @@ class DefaultProjectionStateReader[TKey: Serde, TValue: RootJsonFormat] (
 
   def fetchOne(key: TKey): Future[Option[TValue]] = {
     fetchOne(
-      _ => projectionConfig.storeSnapshots,
+      _ => projectionConfig.storeChangelog,
       fetchOneRemotePath,
       key
     )

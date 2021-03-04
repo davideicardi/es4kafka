@@ -1,15 +1,11 @@
 package bank
 
 import com.davideicardi.kaa.SchemaRegistry
-import com.typesafe.config.ConfigFactory
 import es4kafka.serialization.CommonAvroSerdes._
 import es4kafka.testing.ServiceAppIntegrationSpec
 import net.codingwell.scalaguice.InjectorExtensions._
 
 class BankIntegrationTest extends ServiceAppIntegrationSpec("BankIntegrationTest") {
-  it("should read correct config") {
-    ConfigFactory.load().getString("es4kafka.service.applicationId") should be ("bank-it")
-  }
   it("should override config") {
     Config.applicationId should be("bank-it")
     Config.boundedContext should be("sample")

@@ -5,7 +5,6 @@ import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.scala.StreamsBuilder
 import org.apache.kafka.streams.scala.kstream._
-import org.apache.kafka.streams.state.Stores
 
 abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
     aggregateConfig: AggregateConfig,
@@ -19,7 +18,10 @@ abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
 
   var commandsStream: KStream[TKey, Envelop[TCommand]] = _
   var eventsStream: KStream[TKey, Envelop[TEvent]] = _
-  var snapshotsTable: KTable[TKey, TState] = _
+
+  def changelogTable(streamsBuilder: StreamsBuilder): KTable[TKey, TState] = {
+    streamsBuilder.table[TKey, TState](aggregateConfig.topicChangelog)
+  }
 
   def prepare(streamsBuilder: StreamsBuilder): Unit = {
     // Commands
@@ -30,18 +32,9 @@ abstract class EventSourcingTopology[TKey, TCommand, TEvent, TState >: Null](
     //  failed to initialize processor
     //  Processor .. has no access to StateStore
     eventsStream = commandsStream.transformValues(
-      new EventSourcingTransformerSupplier(aggregateConfig.storeState, aggregateConfig.storeEventsByMsgId, this)
+      new EventSourcingTransformerSupplier(aggregateConfig.storeChangelog, aggregateConfig.storeEventsByMsgId, this)
     ).flatMapValues(v => v)
     eventsStream.to(aggregateConfig.topicEvents)
-
-    // Snapshots (copy from changelog)
-    // I essentially copy that to do not rely on the "changelog" topic that is handled by Kafka Streams.
-    streamsBuilder
-      .stream[TKey, TState](aggregateConfig.topicStateChangelog)
-      .to(aggregateConfig.topicSnapshots)
-    val snapshotsStore = Stores.inMemoryKeyValueStore(aggregateConfig.storeSnapshots)
-    val materializedSnapshots = Materialized.as[TKey, TState](snapshotsStore)
-    snapshotsTable = streamsBuilder.table[TKey, TState](aggregateConfig.topicSnapshots, materializedSnapshots)
   }
 }
 

@@ -32,7 +32,7 @@ class BookPrinterGraph @Inject()(
     consumerFactory
       .readTopicGraph[UUID, Book](
         scenarioGroupId,
-        Subscriptions.topics(Config.Book.topicSnapshots),
+        Subscriptions.topics(Config.Book.topicChangelog),
         PassThroughFlow(
           Flow[CommittableMessage[UUID, Book]]
             .map(_.record.value())

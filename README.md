@@ -28,7 +28,7 @@ There are 3 types of topics:
     - examples: `CreateBook`, `ReserveSeat`
 - `*.events`: Events reflect an immutable fact. The verb is usually past-tense. Expressed as: **{Entity}{Verb}**
     - examples: `BookCreated`, `SeatReserved`
-- `*.snapshots`: Snapshots reflect the current state of an entity. Expressed as: **{Entity}**
+- `*.changelog`: Changelog topic reflects the current state of an entity. Expressed as: **{Entity}**
     - examples: `Book`, `Seat`
 
 A value transformer ([link](https://kafka.apache.org/26/javadoc/org/apache/kafka/streams/kstream/ValueTransformerWithKey.html), `EventSourcingTransformer`)
@@ -37,8 +37,8 @@ The state represents the "domain aggregate state" and should be used to verify t
 
 ![event-sourcing-topology](docs/event-sourcing-topology.drawio.png)
 
-NOTE: in the past I have implemented this topology in a different way, by joining the commands with the snapshots and creating
-snapshots by aggregating events. But while this implementation was simpler it has concurrency problems.
+NOTE: in the past I have implemented this topology in a different way, by joining the commands with the changelog (called snapshots previously) and creating
+changelog by aggregating events. But while this implementation was simpler it has concurrency problems.
 For reference see this [version](https://github.com/davideicardi/es4kafka/tree/8e5f6228bc37fc4d27138b9077fda3f2067c6d77)
 and the discussion [here](https://lists.apache.org/thread.html/r0cf4a01bc86bd6506b0a0c5fe1ed42dc9813e2bc1024ee90a9028b8b%40%3Cusers.kafka.apache.org%3E). 
 
@@ -47,15 +47,15 @@ this is enforced using a prefix with the name of the microservice: **{service}.{
 
 ![logical-view](docs/logical-view.drawio.png)
 
-Following **Event Driven** architecture, microservice should react to other **events** happened inside the system by subscribing to the appropriate `*.events` topic or `*.snapshots` topic. As a reaction of one of these events the microservice can produce a **command** in its own `*.commands` topic or do some other action.
+Following **Event Driven** architecture, microservice should react to other **events** happened inside the system by subscribing to the appropriate `*-events` topic or `*-changelog` topic. As a reaction of one of these events the microservice can produce a **command** in its own `*-commands` topic or do some other action.
 
 ![Microservice Communication](docs/microservice-communication.drawio.png)
 
-Another alternative is to send a commands to the appropriate `*.commands` topic when we want to instruct another microservice to do something. **But we should avoid the situations where many microservices write in the same topic.** In these case it is better to hide the producer of the command inside an HTTP/RPC call.
+Another alternative is to send a commands to the appropriate `*-commands` topic when we want to instruct another microservice to do something. **But we should avoid the situations where many microservices write in the same topic.** In these case it is better to hide the producer of the command inside an HTTP/RPC call.
 
 **Short rules**:
 
-- a microservice can **read** on its own topics or on all the `events` and `snapshots` topics of other services
+- a microservice can **read** on its own topics or on all the `events` and `changelog` topics of other services
 - a microservice can **write** only on its own topics or on the `commands` topics of other services
 
 ## Examples
@@ -67,7 +67,7 @@ Goal is to apply this pattern to a very simple bank account scenario, where I ha
 
 - `operations` stream as "commands" (requests to deposit or withdraw an amount of money, eg. "deposit $10" => `Operation(+10)` )
 - `movements` stream as "events" (actual deposit or withdraw event, eg. "$10 deposited" => `Movement(+10)` )
-- `account` table as a "snapshots" (account balance, eg. "there are currently $20 in my account" => `Account(20)` )
+- `account` table as a "changelog" (account balance, eg. "there are currently $20 in my account" => `Account(20)` )
 - account id is used as `key` for all topics and tables
 
 This is a minimal example to demonstrate the event sourcing concepts.
@@ -98,7 +98,7 @@ In this case the public interface is composed by:
     - ...
 - **Kafka topics**
     - events
-    - snapshots
+    - changelog
 
 Other microservice should just rely on this public interface. Potentially the implementation can change,
 we can use another technology instead of Kafka Streams, but the public interface can remain the same.

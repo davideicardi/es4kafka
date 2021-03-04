@@ -34,14 +34,14 @@ class CatalogIntegrationTest extends ServiceAppIntegrationSpec("CatalogIntegrati
         )
         authorCreatedEvent <- http.fetch[EventList[AuthorEvent]](Uri(s"http://localhost:9081/authors/events/one/${createAuthorResponse.uuid}"))
         kafkaEvents <- readAllKafkaRecords[String, Envelop[AuthorEvent]](injector, Config.Author.topicEvents, 1)
-        kafkaSnapshots <- readAllKafkaRecords[String, Author](injector, Config.Author.topicSnapshots, 1)
+        kafkaSnapshots <- readAllKafkaRecords[String, Author](injector, Config.Author.topicChangelog, 1)
       } yield {
         authorCreatedEvent should be(EventList.single(AuthorCreated("king", "Stephen", "King")))
-        kafkaEvents should have size (1)
+        kafkaEvents should have size 1
         kafkaEvents should be(Seq(
           "king" -> Envelop(createAuthorResponse, AuthorCreated("king", "Stephen", "King"))
         ))
-        kafkaSnapshots should have size (1)
+        kafkaSnapshots should have size 1
         kafkaSnapshots should be(Seq(
           "king" -> Author(EntityStates.VALID, "king", "Stephen", "King")
         ))
@@ -95,14 +95,14 @@ class CatalogIntegrationTest extends ServiceAppIntegrationSpec("CatalogIntegrati
           Uri("http://localhost:9081/books/commands"),
           SetBookAuthor(bookId, Some("king"))
         )
-        kafkaBCSnapshots <- readAllKafkaRecords[UUID, BookCard](injector, Config.BookCard.topicSnapshots, 1)
+        kafkaBCSnapshots <- readAllKafkaRecords[UUID, BookCard](injector, Config.BookCard.topicChangelog, 1)
         cards <- http.fetch[Seq[BookCard]](Uri("http://localhost:9081/booksCards/all"))
       } yield {
         val expectedBookCard = BookCard(Book(bookId, "Misery", Some("king")), Author("king", "Stephen", "King"))
         kafkaBCSnapshots should be(Seq(
           bookId -> expectedBookCard
         ))
-        cards should have size (1)
+        cards should have size 1
         cards should be(Seq(
           expectedBookCard
         ))
