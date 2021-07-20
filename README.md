@@ -227,6 +227,18 @@ To use `es4kafka` in other project locally you can publish it to the local repos
 sbt publishLocal
 ```
 
+## Configurations
+
+The following environment variables are available:
+
+| ENV NAME      | DESCRIPTION       |DEFAULT         |
+|---------------|-------------------|----------------|
+|KAFKA_BROKERS  |Kafka brokers      | localhost:9092 |
+|LISTENING_ENDPOINT| HTTP API listening endpoint | localhost:9081 |
+|LOG_APP_LEVEL| Log application level | INFO |
+|LOG_ROOT_LEVEL| Log root level, for all other libs | WARN |
+|LOG_FORMAT| Kind of log, can be STANDARD or JSON | STANDARD |
+
 ## Credits and other references
 
 Inspired by:
