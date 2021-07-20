@@ -47,7 +47,7 @@ trait StateReader[TKey, TValue] {
 
     hostForStore.map(metadata => {
       if (metadata.isLocal)
-        fetchOneLocal(storeName, key)
+        Future.successful(fetchOneLocal(storeName, key))
       else
         fetchOneRemote(remoteHttpPath, metadata, key)
     }).getOrElse(Future(None))
@@ -83,7 +83,7 @@ trait StateReader[TKey, TValue] {
   protected def fetchOneLocal(
       storeName: TKey => String,
       key: TKey,
-  ): Future[Option[TValue]] = Future {
+  ): Option[TValue] = {
     stateStoreAccessor.getStore[TKey, TValue](storeName(key)).flatMap(s => Option(s.get(key)))
   }
 

@@ -4,32 +4,36 @@ import akka.Done
 import akka.stream.KillSwitch
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 trait GraphControl {
-  def stop()(implicit ec: ExecutionContext): Future[Done]
+  /**
+   * Stop the graph and returns the stream Future
+   * @return A future that will be completed when the stream is completed. Returns None if success or the exception.
+   */
+  def stop()(implicit ec: ExecutionContext): Future[Option[Throwable]]
+
+  def onComplete(f: Option[Throwable] => Unit)(implicit ec: ExecutionContext): Unit
 }
 
 object GraphControl {
-  def fromKillSwitch(killSwitch: KillSwitch): GraphControl = {
+  def fromKillSwitch(killSwitch: KillSwitch, streamFuture: Future[Done]): GraphControl = {
     new GraphControl {
-      override def stop()(implicit ec: ExecutionContext): Future[Done] = Future {
+      override def stop()(implicit ec: ExecutionContext): Future[Option[Throwable]] = {
         killSwitch.shutdown()
-        Done
+        streamFuture
+          .map(_ => None)
+          .recover {
+            case ex => Some(ex)
+          }
+      }
+
+      override def onComplete(f: Option[Throwable] => Unit)(implicit ec: ExecutionContext): Unit = {
+        streamFuture.onComplete {
+          case Success(_) => f(None)
+          case Failure(exception) => f(Some(exception))
+        }
       }
     }
   }
-
-//  def killSwitch[T]() = {
-//    GraphDSL.create { implicit builder: GraphDSL.Builder[NotUsed] =>
-//      builder
-//    }
-//    Flow
-//      .fromGraph[T, T, UniqueKillSwitch](KillSwitches.single)
-//      .mapMaterializedValue(x => new GraphControl {
-//        override def stop()(implicit ec: ExecutionContext): Future[Done] = Future {
-//          x.shutdown()
-//          Done
-//        }
-//      })
-//  }
 }

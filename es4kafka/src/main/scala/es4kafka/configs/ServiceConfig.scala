@@ -2,6 +2,7 @@ package es4kafka.configs
 
 import com.typesafe.config.{Config, ConfigFactory}
 import es4kafka.kafka.KafkaNamingConvention
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.streams.StreamsConfig
 import org.apache.kafka.streams.state.HostInfo
 
@@ -12,7 +13,7 @@ trait BaseConfig {
   lazy val es4KafkaConfig: Config = config.getConfig("es4kafka")
 }
 
-trait ServiceConfig extends BaseConfig {
+trait ServiceConfig extends BaseConfig with ServiceConfigLogger {
   /**
    * Name of the application/microservice.
    * It will be used as Kafka Streams applicationId, Akka System name, logger name and as a prefix for kafka topics.
@@ -37,7 +38,9 @@ trait ServiceConfigHttp {
 }
 
 trait ServiceConfigKafka extends ServiceConfig {
-  lazy val kafkaBrokers: String = sys.env.getOrElse("KAFKA_BROKERS", "localhost:9092")
+
+  lazy val kafkaBrokers: String = es4KafkaConfig.getString("kafka.brokers")
+  lazy val kafkaProducerMaxRequestSize: String = es4KafkaConfig.getString("kafka.producerMaxRequestSize")
 
   lazy val namingConvention: KafkaNamingConvention = new KafkaNamingConvention(applicationId)
 }
@@ -55,7 +58,15 @@ trait ServiceConfigKafkaStreams extends BaseConfig with ServiceConfigKafka with 
     properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE)
     properties.put(
       StreamsConfig.APPLICATION_SERVER_CONFIG, s"${httpEndpoint.host}:${httpEndpoint.port}")
+    properties.put(StreamsConfig.producerPrefix(ProducerConfig.MAX_REQUEST_SIZE_CONFIG), kafkaProducerMaxRequestSize)
 
     properties
   }
+}
+
+trait ServiceConfigLogger extends BaseConfig {
+
+  val logFormat = es4KafkaConfig.getString("logger.format")
+  val logRootLevel = es4KafkaConfig.getString("logger.rootLevel")
+  val logAppLevel = es4KafkaConfig.getString("logger.appLevel")
 }

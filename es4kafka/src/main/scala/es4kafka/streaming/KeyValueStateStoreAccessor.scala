@@ -1,6 +1,6 @@
 package es4kafka.streaming
 
-import com.davideicardi.kaa.utils.{Retry, RetryConfig}
+import kaa.schemaregistry.utils.{Retry, RetryConfig}
 import es4kafka.Inject
 import org.apache.kafka.streams.{KafkaStreams, StoreQueryParameters}
 import org.apache.kafka.streams.state.{QueryableStoreTypes, ReadOnlyKeyValueStore}

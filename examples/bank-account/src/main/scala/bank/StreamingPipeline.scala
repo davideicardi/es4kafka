@@ -1,6 +1,6 @@
 package bank
 
-import com.davideicardi.kaa.SchemaRegistry
+import kaa.schemaregistry.SchemaRegistry
 import es4kafka.Inject
 import es4kafka.serialization.CommonAvroSerdes._
 import es4kafka.streaming._

@@ -3,7 +3,7 @@ package catalog.streaming
 import catalog.authors.streaming.AuthorsTopology
 import catalog.books.streaming.BooksTopology
 import catalog.booksCards.streaming.BooksCardsTopology
-import com.davideicardi.kaa.SchemaRegistry
+import kaa.schemaregistry.SchemaRegistry
 import es4kafka.Inject
 import es4kafka.configs.ServiceConfigKafkaStreams
 import es4kafka.logging.Logger

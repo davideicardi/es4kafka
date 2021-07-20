@@ -8,12 +8,18 @@ import es4kafka.logging._
 import es4kafka.modules._
 
 import java.util.concurrent.CountDownLatch
-import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import scala.util._
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
+import scala.util._
 
 object ServiceApp {
+
+  def initLogger(serviceConfig: ServiceConfig): Unit = {
+    SdpLogger.init(serviceConfig.applicationId, serviceConfig)
+  }
+
   /**
    * Create the main service app.
    *
@@ -25,6 +31,8 @@ object ServiceApp {
       serviceConfig: ServiceConfig,
       installers: Seq[Module.Installer],
   ): ServiceApp = {
+    initLogger(serviceConfig)
+
     val system: ActorSystem = ActorSystem(serviceConfig.applicationId)
 
     try {
@@ -99,7 +107,7 @@ class ServiceApp @Inject()(
     serviceConfig: ServiceConfig,
     system: ActorSystem,
     logger: Logger,
-) extends ServiceAppController {
+) {
   // Config
   private val SHUTDOWN_MAX_WAIT: FiniteDuration = 20.seconds
   private val USER_SHUTDOWN_REQUEST = "USER_SHUTDOWN_REQUEST"
@@ -135,6 +143,15 @@ class ServiceApp @Inject()(
       shutDown(USER_SHUTDOWN_REQUEST)
     }))
 
+    val appController: ServiceAppController = (reason: String) => {
+      // shutdown the app in a background thread to avoid "deadlock"
+      // (module call shutdown and wait the service to stop but service wait module to shutdown)
+      val _ = Future(this.shutDown(reason))
+        .recover { ex =>
+          logger.error("Failed to shutdown service", Some(ex))
+        }
+    }
+
     try {
       init()
 
@@ -142,7 +159,7 @@ class ServiceApp @Inject()(
       sortedModules
         .foreach { module =>
           logger.info(s"Starting module $module")
-          module.start(this)
+          module.start(appController)
         }
     } catch {
       case exception: Exception =>

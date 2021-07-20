@@ -21,9 +21,9 @@ class HelloWorldGraph @Inject() (
   }
 
   def source: Source[String, Cancellable] = {
-    Source.tick(1.seconds, 5.seconds, NotUsed)
+    Source.tick(1.seconds, 30.seconds, NotUsed)
       .map { _ =>
-        val msg = s"Hello world from Akka Stream! Current time is ${instantProvider.now()}"
+        val msg = s"Hello world from HelloWorldGraph ${instantProvider.now()}"
         println(msg)
         msg
       }

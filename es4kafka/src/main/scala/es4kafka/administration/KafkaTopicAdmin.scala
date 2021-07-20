@@ -1,6 +1,6 @@
 package es4kafka.administration
 
-import com.davideicardi.kaa.KaaSchemaRegistry
+import kaa.schemaregistry.KaaSchemaRegistry
 import es4kafka.configs.ServiceConfigKafka
 import es4kafka.{AggregateConfig, ProjectionConfig}
 import org.apache.kafka.clients.CommonClientConfigs

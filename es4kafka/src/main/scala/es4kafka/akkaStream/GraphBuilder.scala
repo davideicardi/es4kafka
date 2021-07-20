@@ -10,13 +10,16 @@ trait GraphBuilder {
 object GraphBuilder {
 
   /**
-   * Returns a RunnableGraph from the specified source by materializing a GraphControl using a KillSwitch
+   * Returns a RunnableGraph from the specified source by materializing a GraphControl using a KillSwitch.
+   * If the graph fails the service will be stopped.
    */
   def fromSource[TOut, TMat](source: Source[TOut, TMat]): RunnableGraph[GraphControl] = {
     source
       .viaMat(KillSwitches.single)(Keep.right)
-      .mapMaterializedValue(GraphControl.fromKillSwitch)
-      .toMat(Sink.ignore)(Keep.left)
+      .toMat(Sink.ignore)(Keep.both)
+      .mapMaterializedValue {
+        case (switch, mat) => GraphControl.fromKillSwitch(switch, mat)
+      }
   }
 
 }

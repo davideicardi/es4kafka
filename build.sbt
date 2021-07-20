@@ -70,12 +70,13 @@ lazy val es4kafka = (project in file("es4kafka"))
                         exclude("com.typesafe.akka", "akka-stream_2.13")
                         exclude("org.apache.kafka", "kafka-clients"),
                 // avro schema registry
-                "com.davideicardi" %% "kaa" % "0.4.5"
+                "com.davideicardi" %% "kaa" % "0.8.1"
                         exclude("org.apache.kafka", "kafka-clients"),
                 // logging
                 "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion,
                 "ch.qos.logback" % "logback-classic" % "1.2.3"
                         exclude("org.slf4j", "slf4j-api"),
+                "net.logstash.logback" % "logstash-logback-encoder" % "6.6",
                 // retry library
                 "com.softwaremill.retry" %% "retry" % "0.3.3",
                 // guice

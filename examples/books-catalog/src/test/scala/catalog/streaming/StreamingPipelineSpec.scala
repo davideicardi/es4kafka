@@ -4,8 +4,8 @@ import catalog.authors._
 import catalog.books._
 import catalog.booksCards._
 import catalog.Config
-import com.davideicardi.kaa.SchemaRegistry
-import com.davideicardi.kaa.test.TestSchemaRegistry
+import kaa.schemaregistry.SchemaRegistry
+import kaa.schemaregistry.test.TestSchemaRegistry
 import es4kafka._
 import es4kafka.logging.Logger
 import es4kafka.testing._

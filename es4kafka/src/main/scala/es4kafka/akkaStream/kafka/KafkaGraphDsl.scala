@@ -16,7 +16,8 @@ object KafkaGraphDsl {
   class AkkaStreamConsumerFactory(consumerFactory: ConsumerFactory) {
     /**
      * Read from a Kafka Topic and process the message using a flow passes as input.
-     * Offset commit are automatically handled.
+     * Offset are automatically handled and stored after processing the message.
+     * "at-least-once" delivery.
      * @param scenarioGroupId it should be an unique name that represents the pipeline used to create the consumer group
      */
     def readTopicGraph[K, V](
@@ -27,11 +28,12 @@ object KafkaGraphDsl {
         implicit keySerde: Serde[K],
         valueSerde: Serde[V],
     ): RunnableGraph[GraphControl] = {
-      consumerFactory
+      val source = consumerFactory
         .committableSource[K, V](scenarioGroupId, subscription)
         .via(processMessageFlow)
         .via(consumerFactory.committerFlow())
-        .toMat(Sink.ignore)((l, r) => new GraphKafkaDrainingControl(l, r))
+
+      GraphKafkaDrainingControl.fromSource(source)
     }
   }
 
