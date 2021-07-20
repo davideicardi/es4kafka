@@ -8,6 +8,7 @@ import akka.kafka.scaladsl.{Producer, SendProducer}
 import akka.stream.scaladsl.Flow
 import es4kafka.Inject
 import es4kafka.configs.ServiceConfigKafka
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.Serde
 
 import scala.concurrent.{Await, Future}
@@ -75,6 +76,7 @@ class ProducerFactoryImpl @Inject() (
   private def producerSettings[K, V](serdeKey: Serde[K], serdeValue: Serde[V]): ProducerSettings[K, V] = {
     ProducerSettings(actorSystem, serdeKey.serializer(), serdeValue.serializer())
       .withBootstrapServers(serviceConfig.kafkaBrokers)
+      .withProperty(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, serviceConfig.kafkaProducerMaxRequestSize)
   }
 }
 

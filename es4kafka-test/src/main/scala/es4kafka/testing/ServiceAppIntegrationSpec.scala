@@ -39,13 +39,14 @@ abstract class ServiceAppIntegrationSpec(name: String) extends AsyncFunSpecLike 
       init: () => Unit,
       testTimeout: FiniteDuration = 30.seconds,
   )(body: Injector => Future[Assertion]): Assertion = {
+    ServiceApp.initLogger(serviceConfig)
+
     implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = 9092)
     implicit val system: ActorSystem = ActorSystem(name)
 
     EmbeddedKafka.start()
     try {
       val injector = ServiceApp.createInjector(serviceConfig, installers)
-      import net.codingwell.scalaguice.InjectorExtensions._
       val service = injector.instance[ServiceApp]
 
       service.start(init)

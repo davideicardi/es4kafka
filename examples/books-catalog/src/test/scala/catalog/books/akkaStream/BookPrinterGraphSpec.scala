@@ -5,7 +5,7 @@ import akka.stream.scaladsl._
 import akka.stream.testkit.scaladsl.{TestSink, TestSource}
 import akka.testkit.TestKit
 import catalog.books.Book
-import com.davideicardi.kaa.test.TestSchemaRegistry
+import kaa.schemaregistry.test.TestSchemaRegistry
 import es4kafka.kafka.ConsumerFactory
 import es4kafka.testing.{LogRecordTest, LoggerTest}
 import org.scalamock.scalatest.AsyncMockFactory

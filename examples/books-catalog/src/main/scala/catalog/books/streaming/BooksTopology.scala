@@ -2,7 +2,7 @@ package catalog.books.streaming
 
 import catalog.Config
 import catalog.books._
-import com.davideicardi.kaa.SchemaRegistry
+import kaa.schemaregistry.SchemaRegistry
 import es4kafka.serialization.CommonAvroSerdes._
 import es4kafka.streaming.es._
 

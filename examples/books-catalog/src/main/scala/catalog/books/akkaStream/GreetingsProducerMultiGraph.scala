@@ -22,8 +22,8 @@ class GreetingsProducerMultiGraph @Inject()(
 ) extends GraphBuilder {
   override def createGraph(): RunnableGraph[GraphControl] = {
     GraphBuilder.fromSource {
-      Source.tick(1.seconds, 5.seconds, NotUsed)
-        .map(_ => s"Hello world ${Instant.now()}!")
+      Source.tick(1.seconds, 60.seconds, NotUsed)
+        .map(_ => s"Hello world from GreetingsProducerMultiGraph ${Instant.now()}!")
         .via(producerFactory.producerFlowTMulti(createRecords))
         .map(value => println(value))
     }

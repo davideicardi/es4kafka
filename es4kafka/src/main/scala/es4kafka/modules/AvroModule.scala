@@ -1,9 +1,10 @@
 package es4kafka.modules
 
-import com.davideicardi.kaa.{KaaSchemaRegistry, SchemaRegistry}
+import kaa.schemaregistry.{KaaSchemaRegistry, SchemaRegistry}
 import com.google.inject.Provides
 import es4kafka._
 import es4kafka.configs.ServiceConfigKafka
+import es4kafka.logging.Logger
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -25,10 +26,16 @@ object AvroModule {
 
 class AvroModule @Inject()(
     schemaRegistry: KaaSchemaRegistry,
+    logger: Logger,
 ) extends Module {
   override val priority: Int = 100
 
   override def start(controller: ServiceAppController): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    schemaRegistry.start({ ex =>
+      logger.error("Error while reading schemas", Some(ex))
+      controller.shutDown("SCHEMA_REGISTRY_FAILURE")
+    })
   }
 
   override def stop(maxWait: FiniteDuration, reason: String): Unit = {

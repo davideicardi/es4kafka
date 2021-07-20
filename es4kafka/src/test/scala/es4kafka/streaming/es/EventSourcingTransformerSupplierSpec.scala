@@ -1,8 +1,8 @@
 package es4kafka.streaming.es
 
-import com.davideicardi.kaa.SchemaRegistry
-import com.davideicardi.kaa.test.TestSchemaRegistry
-import es4kafka.serialization.CommonAvroSerdes.serdeCaseClass
+import kaa.schemaregistry.SchemaRegistry
+import kaa.schemaregistry.test.TestSchemaRegistry
+import es4kafka.serialization.CommonAvroSerdes.createSerde
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.scala.Serdes
 import org.scalatest.funspec.AnyFunSpec

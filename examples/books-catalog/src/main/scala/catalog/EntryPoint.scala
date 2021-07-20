@@ -1,6 +1,7 @@
 package catalog
 
 import catalog.authors._
+import catalog.authors.akkaStream.AuthorKafkaTable
 import catalog.authors.http.AuthorsRoutes
 import catalog.books._
 import catalog.books.akkaStream._
@@ -69,6 +70,7 @@ class CatalogInstaller extends Module.Installer {
     graphs.addBinding.to[BookPrinterGraph].in[SingletonScope]()
     graphs.addBinding.to[GreetingsProducerGraph].in[SingletonScope]()
     graphs.addBinding.to[GreetingsProducerMultiGraph].in[SingletonScope]()
+    graphs.addBinding.to[AuthorKafkaTable].in[SingletonScope]()
   }
 }
 

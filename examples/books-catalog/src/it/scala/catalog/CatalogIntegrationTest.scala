@@ -6,7 +6,7 @@ import catalog.authors._
 import catalog.books._
 import catalog.booksCards._
 import catalog.serialization.JsonFormats._
-import com.davideicardi.kaa.SchemaRegistry
+import kaa.schemaregistry.SchemaRegistry
 import es4kafka.http.HttpFetchImpl
 import es4kafka.serialization.CommonAvroSerdes._
 import es4kafka.testing.ServiceAppIntegrationSpec

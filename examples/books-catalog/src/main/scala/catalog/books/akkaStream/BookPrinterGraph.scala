@@ -6,7 +6,7 @@ import akka.kafka.Subscriptions
 import akka.stream.scaladsl._
 import catalog.Config
 import catalog.books.Book
-import com.davideicardi.kaa.SchemaRegistry
+import kaa.schemaregistry.SchemaRegistry
 import es4kafka._
 import es4kafka.akkaStream._
 import es4kafka.akkaStream.kafka.KafkaGraphDsl._

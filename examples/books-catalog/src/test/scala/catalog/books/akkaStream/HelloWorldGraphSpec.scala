@@ -27,7 +27,7 @@ class HelloWorldGraphSpec extends TestKit(ActorSystem("HelloWorldGraphSpec")) wi
       .to(Sink.actorRef(probe.ref, onCompleteMessage = "completed", onFailureMessage = _ => "failed"))
       .run()
 
-    probe.expectMsg(3.seconds, s"Hello world from Akka Stream! Current time is ${Instant.ofEpochMilli(12332123)}")
+    probe.expectMsg(3.seconds, s"Hello world from HelloWorldGraph ${Instant.ofEpochMilli(12332123)}")
 
     succeed
   }

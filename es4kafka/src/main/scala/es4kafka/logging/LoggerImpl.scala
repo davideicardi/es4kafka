@@ -10,7 +10,6 @@ class LoggerImpl @Inject()(
     actorSystem: ActorSystem
 ) extends Logger {
   private val log = Logging(actorSystem.eventStream, serviceConfig.applicationId)
-
   override def debug(message: => String): Unit = {
     log.debug(message)
   }
@@ -26,7 +25,7 @@ class LoggerImpl @Inject()(
   override def error(message: => String, exception: Option[Throwable] = None): Unit = {
     exception match {
       case Some(e) =>
-        log.error(e, message)
+        log.error(e,message)
       case None =>
         log.error(message)
     }

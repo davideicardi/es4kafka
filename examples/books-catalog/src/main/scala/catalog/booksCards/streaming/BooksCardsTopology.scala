@@ -7,7 +7,7 @@ import catalog.authors.Author
 import catalog.books._
 import catalog.booksCards._
 import es4kafka.serialization.CommonAvroSerdes._
-import com.davideicardi.kaa.SchemaRegistry
+import kaa.schemaregistry.SchemaRegistry
 import org.apache.kafka.streams.scala.kstream._
 import org.apache.kafka.streams.state.Stores
 import es4kafka.EntityStates

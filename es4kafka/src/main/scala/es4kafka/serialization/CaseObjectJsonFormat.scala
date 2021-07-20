@@ -4,7 +4,7 @@ import spray.json._
 
 import scala.reflect.ClassTag
 
-class CaseObjectJsonFormat[T: ClassTag](values: Seq[T])(implicit tag: ClassTag[T]) extends RootJsonFormat[T] {
+class CaseObjectJsonFormat[T](values: Seq[T])(implicit tag: ClassTag[T]) extends RootJsonFormat[T] {
   /** A mapping from object names to the objects */
   private val mapping = values.map(obj => key(obj) -> obj).toMap
 

@@ -1,7 +1,7 @@
 package bank
 
-import com.davideicardi.kaa.SchemaRegistry
-import com.davideicardi.kaa.test.TestSchemaRegistry
+import kaa.schemaregistry.SchemaRegistry
+import kaa.schemaregistry.test.TestSchemaRegistry
 import es4kafka.testing._
 import es4kafka.serialization.CommonAvroSerdes._
 import org.apache.kafka.streams.TopologyTestDriver

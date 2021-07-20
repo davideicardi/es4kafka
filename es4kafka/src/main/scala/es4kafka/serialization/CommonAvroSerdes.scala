@@ -1,19 +1,13 @@
 package es4kafka.serialization
 
-import com.davideicardi.kaa.SchemaRegistry
-import com.davideicardi.kaa.kafka.GenericSerde
 import com.sksamuel.avro4s.{Decoder, Encoder, SchemaFor}
-import org.apache.kafka.common.serialization.{Serde, Serdes}
+import kaa.schemaregistry.SchemaRegistry
+import kaa.schemaregistry.kafka.KaaSerde
+import org.apache.kafka.common.serialization.Serde
 
 trait CommonAvroSerdes {
-  implicit lazy val serdeString: Serdes.StringSerde = new Serdes.StringSerde
-  implicit lazy val serdeUuid: Serdes.UUIDSerde = new Serdes.UUIDSerde
-  implicit lazy val serdeLong: Serdes.LongSerde = new Serdes.LongSerde
-  implicit lazy val serdeInt: Serdes.IntegerSerde = new Serdes.IntegerSerde
-
-  implicit def serdeCaseClass[T >: Null : SchemaFor : Encoder : Decoder](implicit sr: SchemaRegistry): Serde[T] = {
-    new GenericSerde(sr)
-  }
+  implicit def createSerde[T : SchemaFor : Encoder : Decoder](implicit sr: SchemaRegistry): Serde[T] =
+    new KaaSerde[T](sr)
 }
 
 object CommonAvroSerdes extends CommonAvroSerdes
